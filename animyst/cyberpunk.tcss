@@ -1,0 +1,288 @@
+/* ═══════════════════════════════════════════════════════
+   ANIMYST — The Will That Drives The Machine
+   Cyberpunk Agent Development Environment
+   ═══════════════════════════════════════════════════════ */
+
+Screen {
+    background: #06050c;
+    color: #c8c4e0;
+}
+
+/* ── Header Bar ──────────────────────────────────────── */
+#header-bar {
+    dock: top;
+    height: 3;
+    background: #0a091a;
+    border-bottom: solid #c026d3;
+    padding: 0 1;
+}
+
+#logo {
+    width: auto;
+    color: #c026d3;
+    text-style: bold;
+}
+
+#header-status {
+    width: 1fr;
+    text-align: right;
+    color: #504d78;
+}
+
+/* ── Main Container ──────────────────────────────────── */
+#main-container {
+    height: 1fr;
+}
+
+/* ── Left Panel ──────────────────────────────────────── */
+#left-panel {
+    width: 28;
+    background: #0a091a;
+    border-right: solid #1a1738;
+}
+
+#panel-title-agents {
+    width: 100%;
+    height: 1;
+    background: #12102a;
+    color: #c026d3;
+    text-style: bold;
+    text-align: center;
+}
+
+#agent-tree {
+    height: 1fr;
+    background: #0a091a;
+    padding: 0 1;
+    scrollbar-size: 1 1;
+}
+
+#left-actions {
+    height: auto;
+    border-top: solid #1a1738;
+    padding: 0 1;
+}
+
+.action-btn {
+    width: 100%;
+    height: 3;
+    background: #12102a;
+    color: #00fff7;
+    text-style: bold;
+    border: none;
+    margin: 0 0 0 0;
+}
+
+.action-btn:hover {
+    background: #c026d3;
+    color: #06050c;
+}
+
+/* ── Center Panel ────────────────────────────────────── */
+#center-panel {
+    width: 1fr;
+    background: #06050c;
+}
+
+#console-title {
+    width: 100%;
+    height: 1;
+    background: #12102a;
+    color: #00fff7;
+    text-style: bold;
+    text-align: center;
+}
+
+#console-log {
+    height: 1fr;
+    background: #06050c;
+    padding: 0 1;
+    scrollbar-size: 1 1;
+}
+
+#input-bar {
+    height: 3;
+    background: #0a091a;
+    border-top: solid #1a1738;
+    padding: 0 1;
+}
+
+#prompt-label {
+    width: auto;
+    color: #c026d3;
+    text-style: bold;
+}
+
+#command-input {
+    width: 1fr;
+    background: #0a091a;
+    color: #00fff7;
+    border: none;
+}
+
+#command-input:focus {
+    border: none;
+}
+
+/* ── Right Panel ─────────────────────────────────────── */
+#right-panel {
+    width: 34;
+    background: #0a091a;
+    border-left: solid #1a1738;
+}
+
+/* ── Git Panel ───────────────────────────────────────── */
+#git-panel {
+    height: 1fr;
+    border-bottom: solid #1a1738;
+}
+
+#panel-title-git {
+    width: 100%;
+    height: 1;
+    background: #12102a;
+    color: #8b5cf6;
+    text-style: bold;
+    text-align: center;
+}
+
+#git-log {
+    height: 1fr;
+    background: #0a091a;
+    padding: 0 1;
+    scrollbar-size: 1 1;
+}
+
+#git-actions {
+    height: 3;
+    border-top: solid #1a1738;
+    padding: 0 1;
+}
+
+.git-btn {
+    width: 1fr;
+    height: 3;
+    background: #12102a;
+    color: #8b5cf6;
+    text-style: bold;
+    border: none;
+    margin: 0 0 0 0;
+}
+
+.git-btn:hover {
+    background: #8b5cf6;
+    color: #06050c;
+}
+
+/* ── Agent Mind Panel ────────────────────────────────── */
+#mind-panel {
+    height: 1fr;
+}
+
+#panel-title-mind {
+    width: 100%;
+    height: 1;
+    background: #12102a;
+    color: #f59e0b;
+    text-style: bold;
+    text-align: center;
+}
+
+#mind-log {
+    height: 1fr;
+    background: #0a091a;
+    padding: 0 1;
+    scrollbar-size: 1 1;
+}
+
+/* ── Modal Screens ───────────────────────────────────── */
+ModalScreen {
+    align: center middle;
+    background: rgba(6, 5, 12, 0.85);
+}
+
+#modal-dialog {
+    width: 60;
+    height: auto;
+    max-height: 36;
+    background: #0a091a;
+    border: solid #c026d3;
+    padding: 1 2;
+}
+
+#modal-title {
+    width: 100%;
+    text-align: center;
+    color: #c026d3;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+.modal-label {
+    color: #504d78;
+    margin-top: 1;
+    text-style: bold;
+}
+
+.modal-input {
+    width: 100%;
+    background: #12102a;
+    color: #00fff7;
+    border: solid #1a1738;
+}
+
+.modal-input:focus {
+    border: solid #c026d3;
+}
+
+.modal-select {
+    width: 100%;
+    background: #12102a;
+    color: #00fff7;
+    border: solid #1a1738;
+}
+
+#modal-actions {
+    margin-top: 1;
+    height: 3;
+}
+
+.modal-btn {
+    width: 1fr;
+    background: #12102a;
+    color: #c026d3;
+    text-style: bold;
+    border: none;
+}
+
+.modal-btn:hover {
+    background: #c026d3;
+    color: #06050c;
+}
+
+.modal-btn-cancel {
+    width: 1fr;
+    background: #12102a;
+    color: #504d78;
+    border: none;
+}
+
+.modal-btn-cancel:hover {
+    background: #26244a;
+    color: #c8c4e0;
+}
+
+/* ── Footer ──────────────────────────────────────────── */
+Footer {
+    background: #0a091a;
+    color: #504d78;
+}
+
+Footer > .footer--key {
+    background: #12102a;
+    color: #00fff7;
+}
+
+Footer > .footer--description {
+    color: #504d78;
+}
