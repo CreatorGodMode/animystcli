@@ -179,7 +179,7 @@ MIT
 
 <div align="center">
 
-*Built with ◬ by [Abhi](https://github.com/abhi) — CTO @ [Famished.ai](https://famished.ai)*
+*Built with ◬ by [Abhi](https://github.com/CreatorGodMode) — CEO @ [Famished.ai](https://famished.ai) [Animystlab.com](https://animystlab.com)
 
 *[animystlab.com](https://animystlab.com)*
 
