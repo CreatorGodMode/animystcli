@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "animyst"
+version = "0.1.0"
+description = "ANIMYST — Breathe Life Into Code. Agent Development Environment for the Terminal."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Abhi", email = "abhi@famished.ai" },
+]
+keywords = ["tui", "agents", "mcp", "cyberpunk", "terminal", "ai", "animyst"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Terminals",
+]
+dependencies = [
+    "textual>=1.0.0",
+    "rich>=13.0.0",
+    "gitpython>=3.1.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+animyst = "animyst.app:main"
+
+[project.urls]
+Homepage = "https://animystlab.com"
+Repository = "https://github.com/abhi/animyst"
+Issues = "https://github.com/abhi/animyst/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["animyst"]
