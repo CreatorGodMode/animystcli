@@ -385,7 +385,6 @@ class AnimystApp(App):
 
     BINDINGS = [
         Binding("ctrl+n", "manifest_agent", "Manifest", show=True),
-        Binding("ctrl+m", "bind_mcp", "Bind MCP", show=True),
         Binding("ctrl+g", "git_status", "Git", show=True),
         Binding("ctrl+r", "refresh", "Refresh", show=True),
         Binding("ctrl+q", "quit", "Quit", show=True),
@@ -413,7 +412,7 @@ class AnimystApp(App):
                 yield Tree("animyst", id="agent-tree")
                 with Vertical(id="left-actions"):
                     yield Button("⚡ Manifest Agent", id="btn-new-agent", classes="action-btn")
-                    yield Button("◈ Bind MCP", id="btn-new-mcp", classes="action-btn")
+                    yield Button("◈ Bind MCP (soon)", id="btn-new-mcp", classes="action-btn", disabled=True)
                     yield Button("⚙ Settings", id="btn-settings", classes="action-btn")
 
             # CENTER — Console
@@ -825,11 +824,11 @@ class AnimystApp(App):
             self.cmd_run_agent(args[0])
         elif command in ("new", "manifest"):
             if args and args[0] == "mcp":
-                self.action_bind_mcp()
+                self.log_console("[#f59e0b]◈ MCP binding coming in v0.2[/]")
             else:
                 self.action_manifest_agent()
         elif command in ("bind",) and args:
-            self.action_bind_mcp()
+            self.log_console("[#f59e0b]◈ MCP binding coming in v0.2[/]")
         elif command == "inspect" and args:
             self.cmd_inspect(args[0])
         elif command in ("delete", "banish") and args:
@@ -857,7 +856,7 @@ class AnimystApp(App):
 [bold #00fff7]mcps[/]           [#c8c4e0]List all MCP servers[/]
 [bold #00fff7]models[/]         [#c8c4e0]List available models[/]
 [bold #00fff7]manifest[/]       [#c8c4e0]Manifest a new agent[/]
-[bold #00fff7]bind mcp[/]       [#c8c4e0]Bind a new MCP server[/]
+[bold #00fff7]bind mcp[/]       [#c8c4e0]Bind a new MCP server (coming soon)[/]
 [bold #00fff7]awaken <n>[/]   [#c8c4e0]Awaken an agent[/]
 [bold #00fff7]inspect <n>[/]  [#c8c4e0]View agent configuration[/]
 [bold #00fff7]banish <n>[/]   [#c8c4e0]Banish an agent[/]
@@ -867,8 +866,8 @@ class AnimystApp(App):
 [bold #00fff7]clear[/]          [#c8c4e0]Clear console[/]
 [bold #00fff7]ascii[/]          [#c8c4e0]Show animyst logo[/]
 [#504d78]{'─' * 44}[/]
-[#504d78]Shortcuts: Ctrl+N manifest │ Ctrl+M bind mcp[/]
-[#504d78]           Ctrl+G git      │ Ctrl+L clear[/]
+[#504d78]Shortcuts: Ctrl+N manifest │ Ctrl+G git[/]
+[#504d78]           Ctrl+L clear    │ Ctrl+R refresh[/]
 [#504d78]Settings:  Click ⚙ Settings to add API keys[/]"""
         self.log_console(help_text)
 
@@ -1003,19 +1002,7 @@ class AnimystApp(App):
         self.push_screen(ManifestAgentModal(), callback=on_result)
 
     def action_bind_mcp(self) -> None:
-        def on_result(result: Optional[dict]) -> None:
-            if result:
-                mcps = load_mcps()
-                if any(m["id"] == result["id"] for m in mcps):
-                    self.log_console(f"[#ff2244]MCP '{result['name']}' already bound[/]")
-                    return
-                mcps.append(result)
-                save_mcps(mcps)
-                self.refresh_agent_tree()
-                self.log_console(f"[#00ff88]◈ MCP '{result['name']}' bound[/]")
-                self.log_mind(f"[#00ff88]BIND[/] MCP: {result['name']}")
-
-        self.push_screen(BindMCPModal(), callback=on_result)
+        self.notify("MCP binding coming in v0.2", severity="information")
 
     def action_git_status(self) -> None:
         self.cmd_git(["status", "--short"])
@@ -1039,7 +1026,7 @@ class AnimystApp(App):
 
     @on(Button.Pressed, "#btn-new-mcp")
     def on_new_mcp_btn(self) -> None:
-        self.action_bind_mcp()
+        self.notify("MCP binding coming in v0.2", severity="information")
 
     @on(Button.Pressed, "#btn-settings")
     def on_settings_btn(self) -> None:

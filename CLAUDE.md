@@ -41,7 +41,6 @@ ANIMYST uses ritualistic language — never use generic terms in UI, logs, or co
 - **Textual 1.0+** for TUI framework
 - **Rich 13.0+** for terminal formatting
 - **GitPython 3.1+** for git integration
-- **PyYAML 6.0+** (dependency, not yet used)
 - **Build system:** Hatchling
 
 ### Entry Point
