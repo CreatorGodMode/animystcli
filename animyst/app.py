@@ -41,6 +41,8 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.markup import escape
 
+from animyst.llm import load_settings, save_settings, stream_chat
+
 
 # ═══════════════════════════════════════════════════════════════
 # Data Models
@@ -52,8 +54,8 @@ MCPS_FILE = ANIMYST_DIR / "mcps.json"
 MODELS_FILE = ANIMYST_DIR / "models.json"
 
 DEFAULT_MODELS = [
-    {"id": "claude-opus-4-5-20250929", "name": "Claude Opus 4.5", "provider": "anthropic"},
-    {"id": "claude-sonnet-4-5-20250514", "name": "Claude Sonnet 4.5", "provider": "anthropic"},
+    {"id": "claude-opus-4-6", "name": "Claude Opus 4.6", "provider": "anthropic"},
+    {"id": "claude-sonnet-4-5-20250929", "name": "Claude Sonnet 4.5", "provider": "anthropic"},
     {"id": "claude-haiku-4-5-20251001", "name": "Claude Haiku 4.5", "provider": "anthropic"},
     {"id": "gpt-4.1", "name": "GPT-4.1", "provider": "openai"},
     {"id": "gpt-4.1-mini", "name": "GPT-4.1 Mini", "provider": "openai"},
@@ -309,6 +311,67 @@ class AgentDetailModal(ModalScreen[None]):
         self.dismiss(None)
 
 
+class SettingsModal(ModalScreen[None]):
+    """Modal to configure API keys and settings."""
+
+    BINDINGS = [Binding("escape", "cancel", "Cancel")]
+
+    def compose(self) -> ComposeResult:
+        settings = load_settings()
+        keys = settings.get("api_keys", {})
+
+        with Container(id="modal-dialog"):
+            yield Static("[bold #c026d3]◬ SETTINGS ◬[/]", id="modal-title")
+            yield Label("[#504d78]ANTHROPIC API KEY[/]", classes="modal-label")
+            yield Input(
+                placeholder="sk-ant-...",
+                value=keys.get("anthropic", ""),
+                password=True,
+                id="key-anthropic",
+                classes="modal-input",
+            )
+            yield Label("[#504d78]OPENAI API KEY[/]", classes="modal-label")
+            yield Input(
+                placeholder="sk-...",
+                value=keys.get("openai", ""),
+                password=True,
+                id="key-openai",
+                classes="modal-input",
+            )
+            yield Label("[#504d78]GOOGLE API KEY[/]", classes="modal-label")
+            yield Input(
+                placeholder="AI...",
+                value=keys.get("google", ""),
+                password=True,
+                id="key-google",
+                classes="modal-input",
+            )
+            with Horizontal(id="modal-actions"):
+                yield Button("💾 SAVE", id="btn-save", classes="modal-btn")
+                yield Button("✕ CANCEL", id="btn-cancel", classes="modal-btn-cancel")
+
+    @on(Button.Pressed, "#btn-save")
+    def on_save(self) -> None:
+        settings = load_settings()
+        keys = {}
+        for provider in ("anthropic", "openai", "google"):
+            val = self.query_one(f"#key-{provider}", Input).value.strip()
+            if val:
+                keys[provider] = val
+        settings["api_keys"] = keys
+        save_settings(settings)
+        self.app.notify("Settings saved", severity="information")
+        self.app.log_mind("[#00ff88]SETTINGS[/] API keys updated")
+        self.dismiss(None)
+
+    @on(Button.Pressed, "#btn-cancel")
+    def on_cancel_btn(self) -> None:
+        self.dismiss(None)
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
 # ═══════════════════════════════════════════════════════════════
 # Main Application
 # ═══════════════════════════════════════════════════════════════
@@ -322,12 +385,18 @@ class AnimystApp(App):
 
     BINDINGS = [
         Binding("ctrl+n", "manifest_agent", "Manifest", show=True),
-        Binding("ctrl+m", "bind_mcp", "Bind MCP", show=True),
         Binding("ctrl+g", "git_status", "Git", show=True),
         Binding("ctrl+r", "refresh", "Refresh", show=True),
         Binding("ctrl+q", "quit", "Quit", show=True),
         Binding("ctrl+l", "clear_console", "Clear", show=True),
     ]
+
+    def __init__(self):
+        super().__init__()
+        # Chat mode state
+        self.active_agent: dict | None = None
+        self.chat_history: list[dict] = []
+        self.is_streaming: bool = False
 
     def compose(self) -> ComposeResult:
         # Header
@@ -343,7 +412,7 @@ class AnimystApp(App):
                 yield Tree("animyst", id="agent-tree")
                 with Vertical(id="left-actions"):
                     yield Button("⚡ Manifest Agent", id="btn-new-agent", classes="action-btn")
-                    yield Button("◈ Bind MCP", id="btn-new-mcp", classes="action-btn")
+                    yield Button("◈ Bind MCP (soon)", id="btn-new-mcp", classes="action-btn", disabled=True)
                     yield Button("⚙ Settings", id="btn-settings", classes="action-btn")
 
             # CENTER — Console
@@ -503,9 +572,12 @@ class AnimystApp(App):
     # ── Agent Execution ──────────────────────────────────────
 
     def run_agent(self, agent: dict) -> None:
+        """Enter chat mode with an agent."""
         name = agent["name"]
         model = agent.get("model", "unknown")
-        self.log_console(f"[bold #00ff88]▶ MANIFESTING[/] [#00fff7]{name}[/] [#504d78]on {model}[/]")
+        self.log_console(f"[bold #00ff88]▶ AWAKENING[/] [#00fff7]{name}[/] [#504d78]on {model}[/]")
+        self.log_console(f"[#504d78]Chat mode active. Type messages to converse.[/]")
+        self.log_console(f"[#504d78]Use [bold #c026d3]/sleep[/bold #c026d3] to exit chat, [bold #c026d3]/help[/bold #c026d3] for commands.[/]")
         self.log_mind(f"[#00ff88]AWAKEN[/] {name} channeling will")
         self.log_mind(f"[#504d78]       [/] model: {model}")
 
@@ -517,36 +589,175 @@ class AnimystApp(App):
         save_agents(agents)
         self.refresh_agent_tree()
 
-        # Simulate agent work
-        self.simulate_agent(agent)
+        # Enter chat mode
+        self.active_agent = agent
+        self.chat_history = []
+        self.is_streaming = False
+
+        # Update prompt
+        prompt_label = self.query_one("#prompt-label", Static)
+        prompt_label.update(f" {name} › ")
+        cmd_input = self.query_one("#command-input", Input)
+        cmd_input.placeholder = "send a message..."
+
+    def send_chat_message(self, msg: str) -> None:
+        """Send a user message to the active agent."""
+        if not self.active_agent:
+            return
+
+        self.chat_history.append({"role": "user", "content": msg})
+        name = self.active_agent["name"]
+        self.log_console(f"[bold #00fff7]YOU ›[/] [#c8c4e0]{escape(msg)}[/]")
+        self.is_streaming = True
+        self.stream_agent_response()
 
     @work(thread=True)
-    def simulate_agent(self, agent: dict) -> None:
-        """Simulate agent activity for demo purposes."""
+    def stream_agent_response(self) -> None:
+        """Stream LLM response for the active agent."""
         import time
-        name = agent["name"]
-        steps = [
-            f"[#00fff7]{name}[/] [#504d78]Channeling will...[/]",
-            f"[#00fff7]{name}[/] [#504d78]Loading incantation ({len(agent.get('incantation', ''))} chars)[/]",
-            f"[#00fff7]{name}[/] [#504d78]Binding to model endpoint...[/]",
-            f"[#00fff7]{name}[/] [#00ff88]⚡ Awakened — streaming response[/]",
-        ]
-        for step in steps:
-            time.sleep(0.5)
-            self.app.call_from_thread(self.log_console, step)
 
-        # Mark dormant
-        time.sleep(0.5)
+        agent = self.active_agent
+        if not agent:
+            return
+
+        name = agent["name"]
+        model_id = agent.get("model", "claude-sonnet-4-5-20250514")
+        models = load_models()
+        provider = "anthropic"
+        for m in models:
+            if m["id"] == model_id:
+                provider = m.get("provider", "anthropic")
+                break
+
+        self.app.call_from_thread(
+            self.log_mind,
+            f"[#00fff7]STREAM[/] {name} → {provider}/{model_id[:30]}",
+        )
+
+        full_response = ""
+        line_buffer = ""
+        console = self.query_one("#console-log", RichLog)
+
+        # Write the agent name prefix
+        self.app.call_from_thread(
+            console.write,
+            Text.from_markup(f"[bold #c026d3]{name} ›[/] "),
+        )
+
+        last_flush = time.monotonic()
+
+        for event in stream_chat(
+            messages=self.chat_history,
+            model=model_id,
+            provider=provider,
+            system=agent.get("incantation", "You are a helpful assistant."),
+            temperature=agent.get("temperature", 0.7),
+            max_tokens=agent.get("max_tokens", 4096),
+        ):
+            if event.type == "text":
+                full_response += event.content
+                line_buffer += event.content
+
+                # Flush complete lines for smooth display
+                now = time.monotonic()
+                if "\n" in line_buffer:
+                    lines = line_buffer.split("\n")
+                    for line in lines[:-1]:
+                        self.app.call_from_thread(
+                            console.write,
+                            Text.from_markup(f"[#c8c4e0]{escape(line)}[/]"),
+                        )
+                    line_buffer = lines[-1]
+                    last_flush = now
+                elif now - last_flush > 0.08:
+                    # Periodic flush for long lines
+                    if line_buffer:
+                        self.app.call_from_thread(
+                            console.write,
+                            Text.from_markup(f"[#c8c4e0]{escape(line_buffer)}[/]"),
+                        )
+                        line_buffer = ""
+                        last_flush = now
+
+            elif event.type == "error":
+                self.app.call_from_thread(
+                    self.log_console,
+                    f"[#ff2244]ERROR:[/] [#c8c4e0]{escape(event.content)}[/]",
+                )
+                self.app.call_from_thread(
+                    self.log_mind,
+                    f"[#ff2244]ERROR[/] {event.content[:60]}",
+                )
+                # Update agent status
+                agents = load_agents()
+                for a in agents:
+                    if a["name"] == name:
+                        a["status"] = "error"
+                save_agents(agents)
+                self.app.call_from_thread(self.refresh_agent_tree)
+                self.is_streaming = False
+                return
+
+            elif event.type == "done":
+                # Flush remaining buffer
+                if line_buffer:
+                    self.app.call_from_thread(
+                        console.write,
+                        Text.from_markup(f"[#c8c4e0]{escape(line_buffer)}[/]"),
+                    )
+
+                # Save to history
+                if full_response:
+                    self.chat_history.append({
+                        "role": "assistant",
+                        "content": full_response,
+                    })
+
+                # Log usage
+                if event.usage:
+                    inp = event.usage.get("input_tokens", 0)
+                    out = event.usage.get("output_tokens", 0)
+                    self.app.call_from_thread(
+                        self.log_mind,
+                        f"[#f59e0b]USAGE[/] ↑{inp} ↓{out} tokens",
+                    )
+
+                self.app.call_from_thread(
+                    self.log_mind,
+                    f"[#00ff88]DONE[/] {name} response complete "
+                    f"({len(self.chat_history) // 2} turns)",
+                )
+
+        self.is_streaming = False
+
+    def exit_chat_mode(self) -> None:
+        """Exit chat mode and return to command mode."""
+        if not self.active_agent:
+            return
+
+        name = self.active_agent["name"]
+        turns = len(self.chat_history) // 2
+
+        # Mark agent dormant
         agents = load_agents()
         for a in agents:
             if a["name"] == name:
                 a["status"] = "dormant"
         save_agents(agents)
-        self.app.call_from_thread(self.refresh_agent_tree)
-        self.app.call_from_thread(
-            self.log_mind,
-            f"[#f59e0b]DONE[/] {name} returned to dormancy"
-        )
+        self.refresh_agent_tree()
+
+        self.active_agent = None
+        self.chat_history = []
+        self.is_streaming = False
+
+        # Restore prompt
+        prompt_label = self.query_one("#prompt-label", Static)
+        prompt_label.update(" animyst › ")
+        cmd_input = self.query_one("#command-input", Input)
+        cmd_input.placeholder = "type a command..."
+
+        self.log_console(f"[#504d78]{name} returned to dormancy ({turns} turns)[/]")
+        self.log_mind(f"[#f59e0b]SLEEP[/] {name} → dormant ({turns} turns)")
 
     # ── Command Processing ───────────────────────────────────
 
@@ -559,8 +770,44 @@ class AnimystApp(App):
         input_widget = self.query_one("#command-input", Input)
         input_widget.value = ""
 
-        self.log_console(f"[bold #c026d3]◬[/] [#00fff7]{escape(cmd)}[/]")
+        # Block input while streaming
+        if self.is_streaming:
+            self.notify("Agent is still responding...", severity="warning")
+            return
 
+        # Chat mode: route messages vs commands
+        if self.active_agent:
+            if cmd.startswith("/"):
+                # Slash commands in chat mode
+                raw = cmd[1:].strip()
+                parts = raw.split()
+                subcmd = parts[0].lower() if parts else ""
+
+                if subcmd == "sleep":
+                    self.exit_chat_mode()
+                elif subcmd == "history":
+                    turns = len(self.chat_history) // 2
+                    self.log_console(f"[#00fff7]Chat history: {turns} turn(s), {len(self.chat_history)} messages[/]")
+                elif subcmd == "clear":
+                    self.action_clear_console()
+                elif subcmd == "help":
+                    self.cmd_chat_help()
+                else:
+                    # Fall through to normal command processing
+                    self.log_console(f"[bold #c026d3]◬[/] [#00fff7]{escape(raw)}[/]")
+                    self._process_command(raw)
+                return
+            else:
+                # Plain text → chat message
+                self.send_chat_message(cmd)
+                return
+
+        # Normal command mode
+        self.log_console(f"[bold #c026d3]◬[/] [#00fff7]{escape(cmd)}[/]")
+        self._process_command(cmd)
+
+    def _process_command(self, cmd: str) -> None:
+        """Process a command string (shared by normal and chat mode)."""
         parts = cmd.split()
         command = parts[0].lower()
         args = parts[1:]
@@ -577,11 +824,11 @@ class AnimystApp(App):
             self.cmd_run_agent(args[0])
         elif command in ("new", "manifest"):
             if args and args[0] == "mcp":
-                self.action_bind_mcp()
+                self.log_console("[#f59e0b]◈ MCP binding coming in v0.2[/]")
             else:
                 self.action_manifest_agent()
         elif command in ("bind",) and args:
-            self.action_bind_mcp()
+            self.log_console("[#f59e0b]◈ MCP binding coming in v0.2[/]")
         elif command == "inspect" and args:
             self.cmd_inspect(args[0])
         elif command in ("delete", "banish") and args:
@@ -609,7 +856,7 @@ class AnimystApp(App):
 [bold #00fff7]mcps[/]           [#c8c4e0]List all MCP servers[/]
 [bold #00fff7]models[/]         [#c8c4e0]List available models[/]
 [bold #00fff7]manifest[/]       [#c8c4e0]Manifest a new agent[/]
-[bold #00fff7]bind mcp[/]       [#c8c4e0]Bind a new MCP server[/]
+[bold #00fff7]bind mcp[/]       [#c8c4e0]Bind a new MCP server (coming soon)[/]
 [bold #00fff7]awaken <n>[/]   [#c8c4e0]Awaken an agent[/]
 [bold #00fff7]inspect <n>[/]  [#c8c4e0]View agent configuration[/]
 [bold #00fff7]banish <n>[/]   [#c8c4e0]Banish an agent[/]
@@ -619,8 +866,24 @@ class AnimystApp(App):
 [bold #00fff7]clear[/]          [#c8c4e0]Clear console[/]
 [bold #00fff7]ascii[/]          [#c8c4e0]Show animyst logo[/]
 [#504d78]{'─' * 44}[/]
-[#504d78]Shortcuts: Ctrl+N manifest │ Ctrl+M bind mcp[/]
-[#504d78]           Ctrl+G git      │ Ctrl+L clear[/]"""
+[#504d78]Shortcuts: Ctrl+N manifest │ Ctrl+G git[/]
+[#504d78]           Ctrl+L clear    │ Ctrl+R refresh[/]
+[#504d78]Settings:  Click ⚙ Settings to add API keys[/]"""
+        self.log_console(help_text)
+
+    def cmd_chat_help(self) -> None:
+        help_text = f"""
+[bold #c026d3]◬ CHAT MODE COMMANDS ◬[/]
+[#504d78]{'─' * 44}[/]
+[#c8c4e0]Type messages to chat with the agent.[/]
+[#c8c4e0]Prefix with [bold #c026d3]/[/bold #c026d3] for commands:[/]
+[#504d78]{'─' * 44}[/]
+[bold #00fff7]/sleep[/]         [#c8c4e0]Exit chat mode (agent → dormant)[/]
+[bold #00fff7]/history[/]       [#c8c4e0]Show conversation turn count[/]
+[bold #00fff7]/clear[/]         [#c8c4e0]Clear console output[/]
+[bold #00fff7]/help[/]          [#c8c4e0]Show this help[/]
+[bold #00fff7]/<command>[/]     [#c8c4e0]Run any animyst command[/]
+[#504d78]{'─' * 44}[/]"""
         self.log_console(help_text)
 
     def cmd_list_agents(self) -> None:
@@ -739,19 +1002,7 @@ class AnimystApp(App):
         self.push_screen(ManifestAgentModal(), callback=on_result)
 
     def action_bind_mcp(self) -> None:
-        def on_result(result: Optional[dict]) -> None:
-            if result:
-                mcps = load_mcps()
-                if any(m["id"] == result["id"] for m in mcps):
-                    self.log_console(f"[#ff2244]MCP '{result['name']}' already bound[/]")
-                    return
-                mcps.append(result)
-                save_mcps(mcps)
-                self.refresh_agent_tree()
-                self.log_console(f"[#00ff88]◈ MCP '{result['name']}' bound[/]")
-                self.log_mind(f"[#00ff88]BIND[/] MCP: {result['name']}")
-
-        self.push_screen(BindMCPModal(), callback=on_result)
+        self.notify("MCP binding coming in v0.2", severity="information")
 
     def action_git_status(self) -> None:
         self.cmd_git(["status", "--short"])
@@ -775,12 +1026,11 @@ class AnimystApp(App):
 
     @on(Button.Pressed, "#btn-new-mcp")
     def on_new_mcp_btn(self) -> None:
-        self.action_bind_mcp()
+        self.notify("MCP binding coming in v0.2", severity="information")
 
     @on(Button.Pressed, "#btn-settings")
     def on_settings_btn(self) -> None:
-        self.log_console(f"[#504d78]Config directory: {ANIMYST_DIR}[/]")
-        self.cmd_status()
+        self.push_screen(SettingsModal())
 
     @on(Button.Pressed, "#btn-push")
     def on_push_btn(self) -> None:
