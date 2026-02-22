@@ -54,7 +54,7 @@ Think of it as the difference between Spotify (playing music) and Ableton (creat
 
 **⚡ Agent Manifest** — Define agents with custom incantations, model selection, temperature, and token limits. All configs stored as JSON in `~/.animyst/`.
 
-**◈ MCP Binding** — Register and manage Model Context Protocol servers (filesystem, GitHub, Slack, custom APIs). Bind them to agents with a keystroke.
+**◈ MCP Binding** *(coming in v0.2)* — Register and manage Model Context Protocol servers (filesystem, GitHub, Slack, custom APIs). Bind them to agents with a keystroke.
 
 **⎇ Git Integration** — Built-in git panel showing branch, changed files, recent commits. Quick actions for push, PR, and diff without leaving the TUI.
 
@@ -68,8 +68,8 @@ Think of it as the difference between Spotify (playing music) and Ableton (creat
 
 ```bash
 # Clone the repo
-git clone https://github.com/abhi/animyst.git
-cd animyst
+git clone https://github.com/CreatorGodMode/animystcli.git
+cd animystcli
 
 # Install with pip
 pip install -e .
@@ -93,7 +93,7 @@ animyst
 # Inside the console:
 help              # See all commands
 manifest          # Manifest a new agent (or Ctrl+N)
-bind mcp          # Bind a new MCP server (or Ctrl+M)
+bind mcp          # Bind a new MCP server (coming in v0.2)
 agents            # List all agents
 awaken scout      # Awaken an agent
 inspect scout     # View agent configuration
@@ -108,7 +108,6 @@ status            # System overview
 | Key | Action |
 |-----|--------|
 | `Ctrl+N` | Manifest new agent |
-| `Ctrl+M` | Bind new MCP |
 | `Ctrl+G` | Git status |
 | `Ctrl+R` | Refresh all panels |
 | `Ctrl+L` | Clear console |
@@ -130,7 +129,7 @@ Animyst uses a file-based config system. Agent configs are portable JSON files t
 ```json
 {
   "name": "scout",
-  "model": "claude-sonnet-4-5-20250514",
+  "model": "claude-sonnet-4-5-20250929",
   "incantation": "You are a research agent that finds and summarizes information.",
   "mcps": ["web-search", "filesystem"],
   "temperature": 0.7,
@@ -157,13 +156,16 @@ Animyst uses intentional language to distinguish itself:
 - **[Textual](https://textual.textualize.io)** — Python TUI framework with CSS-like styling
 - **[Rich](https://rich.readthedocs.io)** — Terminal formatting and markup
 - **[GitPython](https://gitpython.readthedocs.io)** — Git integration
+- **[Anthropic SDK](https://docs.anthropic.com)** — Claude model integration
+- **[OpenAI SDK](https://platform.openai.com/docs)** — GPT model integration
+- **[Google GenAI SDK](https://ai.google.dev)** — Gemini model integration
 - **Python 3.10+** — Async-native, type-hinted
 
 ## Roadmap
 
-- [ ] Live agent execution with streaming output
+- [x] Live agent execution with streaming output
+- [ ] MCP server connection & health checking
 - [ ] Multi-agent pipeline composer
-- [ ] MCP server health checks
 - [ ] Agent conversation history
 - [ ] Akira-style telemetry HUD in Agent Mind panel
 - [ ] Plugin system for custom panels
@@ -179,7 +181,7 @@ MIT
 
 <div align="center">
 
-*Built with ◬ by [Abhi](https://github.com/abhi) — CTO @ [Famished.ai](https://famished.ai)*
+*Built with ◬ by [Abhi](https://github.com/CreatorGodMode) — CTO @ [Famished.ai](https://famished.ai)*
 
 *[animystlab.com](https://animystlab.com)*
 
