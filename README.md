@@ -31,7 +31,7 @@ Animyst is an **agent development environment** for the terminal. A TUI for buil
 
 Unlike tools that act as session managers for existing coding agents, Animyst lets you **define** custom agents from scratch — choosing models, attaching MCP servers, writing incantations (system prompts), and composing multi-agent workflows.
 
-Think of it as the difference between Spotify (playing music) and Ableton (creating music).
+Most AI tools run agents — Animyst lets you **build** them.
 
 ```
 ┌──────────────┬────────────────────────────────┬──────────────────┐
@@ -54,6 +54,10 @@ Think of it as the difference between Spotify (playing music) and Ableton (creat
 
 **⚡ Agent Manifest** — Define agents with custom incantations, model selection, temperature, and token limits. All configs stored as JSON in `~/.animyst/`.
 
+**🔮 Live LLM Streaming** — Real-time streaming chat with Anthropic (Claude), OpenAI (GPT), and Google (Gemini) models. Token usage reported per response.
+
+**🔑 Settings Modal** — Configure API keys for all supported providers. Keys saved securely with restricted file permissions.
+
 **◈ MCP Binding** *(coming in v0.2)* — Register and manage Model Context Protocol servers (filesystem, GitHub, Slack, custom APIs). Bind them to agents with a keystroke.
 
 **⎇ Git Integration** — Built-in git panel showing branch, changed files, recent commits. Quick actions for push, PR, and diff without leaving the TUI.
@@ -67,21 +71,17 @@ Think of it as the difference between Spotify (playing music) and Ableton (creat
 ## Install
 
 ```bash
-# Clone the repo
-git clone https://github.com/CreatorGodMode/animystcli.git
-cd animystcli
-
-# Install with pip
-pip install -e .
-
-# Run
+pip install animyst
 animyst
 ```
 
-Or install directly:
+Or install from source:
 
 ```bash
-pip install animyst
+git clone https://github.com/CreatorGodMode/animystcli.git
+cd animystcli
+pip install -e .
+animyst
 ```
 
 ## Quick Start
@@ -119,7 +119,8 @@ status            # System overview
 ~/.animyst/
 ├── agents.json    # Agent configurations
 ├── mcps.json      # Bound MCP server registry
-└── models.json    # Available model definitions
+├── models.json    # Available model definitions
+└── settings.json  # API keys and preferences (0600 perms)
 ```
 
 Animyst uses a file-based config system. Agent configs are portable JSON files that can be version-controlled, shared, and composed into pipelines.
@@ -167,7 +168,7 @@ Animyst uses intentional language to distinguish itself:
 - [ ] MCP server connection & health checking
 - [ ] Multi-agent pipeline composer
 - [ ] Agent conversation history
-- [ ] Akira-style telemetry HUD in Agent Mind panel
+- [ ] Telemetry HUD in Agent Mind panel
 - [ ] Plugin system for custom panels
 - [ ] Remote agent deployment
 - [ ] Cost tracking per agent run
