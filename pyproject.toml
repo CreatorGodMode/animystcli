@@ -40,8 +40,8 @@ animyst = "animyst.app:main"
 
 [project.urls]
 Homepage = "https://animystlab.com"
-Repository = "https://github.com/abhi/animyst"
-Issues = "https://github.com/abhi/animyst/issues"
+Repository = "https://github.com/CreatorGodMode/animystcli"
+Issues = "https://github.com/CreatorGodMode/animystcli/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["animyst"]
