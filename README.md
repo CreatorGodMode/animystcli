@@ -27,7 +27,7 @@
 
 ## What is Animyst?
 
-Animyst is an **agent development environment** for the terminal. A  TUI for building, configuring, and managing AI agents — not just running them.
+Animyst is an **agent development environment** for the terminal. A TUI for building, configuring, and managing AI agents — not just running them.
 
 Unlike tools that act as session managers for existing coding agents, Animyst lets you **define** custom agents from scratch — choosing models, attaching MCP servers, writing incantations (system prompts), and composing multi-agent workflows.
 
