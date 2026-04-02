@@ -1,3 +1,3 @@
-"""ANIMYST — Breathe Life Into Code."""
+"""ANIMYST — A local-first terminal workspace for AI agents."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
