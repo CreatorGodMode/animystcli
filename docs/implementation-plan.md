@@ -4,7 +4,7 @@ This loop replaces the completed refactor plan and focuses on the next product a
 
 ## Objectives
 
-- ship real MCP binding and basic health checks
+- complete session history UX after shipping real MCP binding and basic health checks
 - deepen conversation history UX beyond simple resume and summary counts
 - add Textual integration coverage around core app flows
 - harden `ralph.sh` for repeatable status, reset, PR, and release workflows
@@ -28,3 +28,7 @@ This loop replaces the completed refactor plan and focuses on the next product a
 - Ralph loop status can be reset and inspected without manual file cleanup
 - docs, versioning, and release notes are aligned with the shipped behavior
 
+## Current State
+
+- `10-mcp-binding` is implemented in the repo
+- the next active product milestone is `20-history-ux`

@@ -60,7 +60,7 @@ Most AI tools run agents — Animyst lets you **build** them.
 
 **🔑 Settings Modal** — Configure API keys for all supported providers. Keys saved securely with restricted file permissions.
 
-**◈ MCP Binding** — Register and manage Model Context Protocol servers (filesystem, GitHub, Slack, custom APIs). Bound MCPs are persisted with transport-specific targets and basic health metadata.
+**◈ MCP Binding** — Register and manage Model Context Protocol servers (filesystem, GitHub, Slack, custom APIs). Bound MCPs are persisted with transport-specific targets and basic health metadata, and can be checked from the console.
 
 **⎇ Git Integration** — Built-in git panel showing branch, changed files, recent commits. Quick actions for push, PR, and diff without leaving the TUI.
 
@@ -169,6 +169,7 @@ When you awaken an agent, Animyst resumes the latest saved session for that agen
 ## Ralph Loop Kit
 
 The previous refactor loop has been cleared. The current Ralph loop now targets the next product milestones: MCP binding, history UX, Textual tests, Ralph hardening, and release cleanup.
+Phase `10-mcp-binding` is already implemented in the repo, so the next active milestone is session history UX.
 
 Use the included Ralph loop wrapper to run the new phase sequence:
 
@@ -238,7 +239,8 @@ Animyst uses intentional language to distinguish itself:
 - [x] Agent conversation history
 - [x] Architecture modularization for storage, services, commands, and UI
 - [x] Ralph loop automation kit for autonomous refactors
-- [ ] MCP server connection & health checking
+- [x] Basic MCP binding and health checks
+- [ ] Rich MCP runtime integration and deeper health diagnostics
 - [ ] Multi-agent pipeline composer
 - [ ] Telemetry HUD in Agent Mind panel
 - [ ] Plugin system for custom panels
