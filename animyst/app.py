@@ -26,7 +26,7 @@ from textual.widgets import Button, Footer, Input, RichLog, Static, Tree
 from animyst.commands import CommandDispatcher
 from animyst.domain import ConversationSession
 from animyst.llm import stream_chat
-from animyst.services import AgentService, ChatService
+from animyst.services import AgentService, ChatService, McpService
 from animyst.storage import (
     ANIMYST_DIR,
     AgentRepository,
@@ -38,6 +38,7 @@ from animyst.storage import (
 )
 from animyst.ui import (
     AgentDetailModal,
+    BindMCPModal,
     LOGO,
     ManifestAgentModal,
     SettingsModal,
@@ -75,6 +76,7 @@ class AnimystApp(App):
         self.history_repository = HistoryRepository()
         self.agent_service = AgentService(self.agent_repository, self.history_repository)
         self.chat_service = ChatService(self.history_repository, self.model_repository)
+        self.mcp_service = McpService(self.mcp_repository)
         self.command_dispatcher = CommandDispatcher()
         self.active_agent: dict | None = None
         self.active_session: ConversationSession | None = None
@@ -91,7 +93,7 @@ class AnimystApp(App):
                 yield Tree("animyst", id="agent-tree")
                 with Vertical(id="left-actions"):
                     yield Button("⚡ Manifest Agent", id="btn-new-agent", classes="action-btn")
-                    yield Button("◈ Bind MCP (soon)", id="btn-new-mcp", classes="action-btn", disabled=True)
+                    yield Button("◈ Bind MCP", id="btn-new-mcp", classes="action-btn")
                     yield Button("⚙ Settings", id="btn-settings", classes="action-btn")
 
             with Vertical(id="center-panel"):
@@ -141,9 +143,14 @@ class AnimystApp(App):
             )
 
         mcps_node = tree.root.add("[bold #00fff7]◈ MCPs[/]", expand=True)
-        for mcp in self.mcp_repository.list_mcps():
+        for mcp in self.mcp_service.list_mcps():
+            health = {
+                "healthy": "[#00ff88]●[/]",
+                "error": "[#ff2244]●[/]",
+                "unknown": "[#504d78]●[/]",
+            }.get(mcp.get("health_status", "unknown"), "[#504d78]●[/]")
             mcps_node.add_leaf(
-                f"[#26244a]▸[/] [#c8c4e0]{mcp['name']}[/]",
+                f"{health} [#c8c4e0]{mcp['name']}[/]",
                 data={"type": "mcp", "id": mcp["id"]},
             )
 
@@ -441,8 +448,12 @@ class AnimystApp(App):
             self.cmd_run_agent(action.args[0])
         elif action.kind == "manifest_agent":
             self.action_manifest_agent()
-        elif action.kind == "bind_mcp_info":
-            self.log_console("[#f59e0b]◈ MCP binding coming in v0.2[/]")
+        elif action.kind == "bind_mcp":
+            self.action_bind_mcp()
+        elif action.kind == "check_mcp":
+            self.cmd_check_mcp(action.args[0])
+        elif action.kind == "inspect_mcp":
+            self.cmd_inspect_mcp(action.args[0])
         elif action.kind == "inspect_agent":
             self.cmd_inspect(action.args[0])
         elif action.kind == "delete_agent":
@@ -482,9 +493,16 @@ class AnimystApp(App):
 
     def cmd_list_mcps(self) -> None:
         self.log_console("[bold #00fff7]◈ BOUND MCP SERVERS[/]")
-        for mcp in self.mcp_repository.list_mcps():
+        for mcp in self.mcp_service.list_mcps():
+            health = mcp.get("health_status", "unknown")
+            health_color = {
+                "healthy": "#00ff88",
+                "error": "#ff2244",
+                "unknown": "#504d78",
+            }.get(health, "#504d78")
             self.log_console(
-                f"  [#26244a]▸[/] [bold #c8c4e0]{mcp['name']:<16}[/] [#504d78]{mcp.get('type', 'stdio')}[/]"
+                f"  [#26244a]▸[/] [bold #c8c4e0]{mcp['name']:<16}[/] "
+                f"[#504d78]{mcp.get('type', 'stdio')}[/] [{health_color}]{health}[/]"
             )
 
     def cmd_list_models(self) -> None:
@@ -500,6 +518,13 @@ class AnimystApp(App):
             self.log_console(f"[#ff2244]Agent '{escape(name)}' not found[/]")
             return
         self.run_agent(agent)
+
+    def cmd_inspect_mcp(self, name: str) -> None:
+        mcp = self.mcp_service.get_mcp(name)
+        if not mcp:
+            self.log_console(f"[#ff2244]MCP '{escape(name)}' not found[/]")
+            return
+        self.log_console(format_mcp_detail(mcp))
 
     def _history_line_for_agent(self, agent_name: str) -> str:
         summary = self.agent_service.history_summary(agent_name)
@@ -541,6 +566,31 @@ class AnimystApp(App):
             return
         self.log_console(f"[#00ff88]✓ Exported to {export_path}[/]")
         self.log_mind(f"[#00ff88]EXPORT[/] {name} → {export_path.name}")
+
+    @work(thread=True)
+    def cmd_check_mcp(self, name: str) -> None:
+        ok, result = self.mcp_service.check_mcp(name)
+        if not ok and isinstance(result, str):
+            self.app.call_from_thread(
+                self.log_console,
+                f"[#ff2244]MCP check failed:[/] [#c8c4e0]{escape(str(result))}[/]",
+            )
+            return
+
+        assert isinstance(result, dict)
+        health = result.get("health_status", "unknown")
+        detail = result.get("health_detail") or result.get("last_error") or "not checked"
+        color = "#00ff88" if health == "healthy" else "#ff2244"
+        self.app.call_from_thread(
+            self.log_console,
+            f"[#00fff7]MCP check:[/] [bold #c8c4e0]{escape(result['name'])}[/] "
+            f"[{color}]{escape(health)}[/] [#504d78]{escape(str(detail))}[/]",
+        )
+        self.app.call_from_thread(
+            self.log_mind,
+            f"[#00fff7]MCP[/] {result['name']} → {health}",
+        )
+        self.app.call_from_thread(self.refresh_agent_tree)
 
     @work(thread=True)
     def cmd_git(self, args: list[str]) -> None:
@@ -593,7 +643,19 @@ class AnimystApp(App):
         self.push_screen(ManifestAgentModal(self.model_repository), callback=on_result)
 
     def action_bind_mcp(self) -> None:
-        self.notify("MCP binding coming in v0.2", severity="information")
+        def on_result(result: dict | None) -> None:
+            if not result:
+                return
+            ok, payload = self.mcp_service.bind_mcp(result)
+            if not ok:
+                self.log_console(f"[#ff2244]{escape(str(payload))}[/]")
+                return
+            assert isinstance(payload, dict)
+            self.refresh_agent_tree()
+            self.log_console(f"[#00ff88]◈ MCP '{escape(payload['name'])}' bound[/]")
+            self.log_mind(f"[#00ff88]BIND[/] {payload['name']} ({payload['type']})")
+
+        self.push_screen(BindMCPModal(), callback=on_result)
 
     def action_git_status(self) -> None:
         self.cmd_git(["status", "--short"])
@@ -615,7 +677,7 @@ class AnimystApp(App):
 
     @on(Button.Pressed, "#btn-new-mcp")
     def on_new_mcp_btn(self) -> None:
-        self.notify("MCP binding coming in v0.2", severity="information")
+        self.action_bind_mcp()
 
     @on(Button.Pressed, "#btn-settings")
     def on_settings_btn(self) -> None:
@@ -645,10 +707,7 @@ class AnimystApp(App):
         if node.data.get("type") == "agent":
             self.cmd_inspect(node.data["name"])
         elif node.data.get("type") == "mcp":
-            mcp = next(
-                (item for item in self.mcp_repository.list_mcps() if item["id"] == node.data["id"]),
-                None,
-            )
+            mcp = self.mcp_service.get_mcp(node.data["id"])
             if mcp:
                 self.log_console(format_mcp_detail(mcp))
 

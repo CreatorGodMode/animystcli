@@ -12,9 +12,11 @@ from animyst.ui.formatting import (
     status_icon,
 )
 from animyst.ui.modals import AgentDetailModal, ManifestAgentModal, SettingsModal
+from animyst.ui.modals import BindMCPModal
 
 __all__ = [
     "AgentDetailModal",
+    "BindMCPModal",
     "LOGO",
     "ManifestAgentModal",
     "SettingsModal",

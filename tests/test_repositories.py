@@ -52,7 +52,16 @@ def test_model_and_mcp_repositories_ignore_non_dict_entries(tmp_path):
     mcps = McpRepository(mcp_path).list_mcps()
 
     assert models == [{"id": "gpt-4.1", "name": "GPT-4.1"}]
-    assert mcps == [{"id": "filesystem", "name": "Filesystem"}]
+    assert mcps == [{
+        "id": "filesystem",
+        "name": "Filesystem",
+        "type": "stdio",
+        "command": "",
+        "url": "",
+        "health_status": "unknown",
+        "last_checked": None,
+        "last_error": None,
+    }]
 
 
 def test_history_repository_persists_and_summarizes_sessions(tmp_path):
@@ -82,3 +91,17 @@ def test_history_repository_handles_malformed_payloads(tmp_path):
     assert repository.load_latest_session("scout") is None
     assert repository.history_summary("scout").session_count == 0
 
+
+def test_mcp_repository_normalizes_http_entries(tmp_path):
+    path = tmp_path / "mcps.json"
+    path.write_text(json.dumps([{
+        "id": "docs-api",
+        "name": "Docs API",
+        "type": "http",
+        "command": "https://example.com/mcp",
+    }]))
+
+    mcps = McpRepository(path).list_mcps()
+
+    assert mcps[0]["url"] == "https://example.com/mcp"
+    assert mcps[0]["command"] == ""

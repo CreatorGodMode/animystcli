@@ -53,8 +53,10 @@ def help_text() -> str:
 [bold #00fff7]mcps[/]           [#c8c4e0]List all MCP servers[/]
 [bold #00fff7]models[/]         [#c8c4e0]List available models[/]
 [bold #00fff7]manifest[/]       [#c8c4e0]Manifest a new agent[/]
-[bold #00fff7]bind mcp[/]       [#c8c4e0]Bind a new MCP server (coming soon)[/]
+[bold #00fff7]bind mcp[/]       [#c8c4e0]Bind a new MCP server[/]
+[bold #00fff7]check mcp <n>[/]  [#c8c4e0]Run a basic MCP health check[/]
 [bold #00fff7]awaken <n>[/]     [#c8c4e0]Awaken an agent[/]
+[bold #00fff7]inspect mcp <n>[/][#c8c4e0]View MCP details[/]
 [bold #00fff7]inspect <n>[/]    [#c8c4e0]View agent configuration[/]
 [bold #00fff7]banish <n>[/]     [#c8c4e0]Banish an agent[/]
 [bold #00fff7]export <n>[/]     [#c8c4e0]Export agent config as JSON[/]
@@ -108,9 +110,21 @@ def format_history_summary(summary: HistorySummary) -> str:
 
 
 def format_mcp_detail(mcp: dict[str, str]) -> str:
+    health_status = mcp.get("health_status", "unknown")
+    health_color = {
+        "healthy": "#00ff88",
+        "error": "#ff2244",
+        "unknown": "#504d78",
+    }.get(health_status, "#504d78")
+    health_detail = mcp.get("last_error") or mcp.get("health_detail") or "not checked"
+    target_label = "Command" if mcp.get("type", "stdio") == "stdio" else "URL"
+    target_value = mcp.get("command") or mcp.get("url") or "N/A"
+    checked = mcp.get("last_checked") or "never"
     return (
         f"[bold #00fff7]◈ MCP: {escape(mcp['name'])}[/]\n"
         f"  [#c026d3]Type:[/]    [#c8c4e0]{escape(mcp.get('type', 'stdio'))}[/]\n"
-        f"  [#c026d3]Command:[/] [#c8c4e0]{escape(mcp.get('command', 'N/A'))}[/]"
+        f"  [#c026d3]{target_label}:[/] [#c8c4e0]{escape(target_value)}[/]\n"
+        f"  [#c026d3]Health:[/]  [{health_color}]{escape(health_status.upper())}[/]\n"
+        f"  [#c026d3]Checked:[/] [#c8c4e0]{escape(checked)}[/]\n"
+        f"  [#c026d3]Detail:[/]  [#c8c4e0]{escape(str(health_detail))}[/]"
     )
-

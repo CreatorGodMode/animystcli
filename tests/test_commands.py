@@ -27,3 +27,18 @@ def test_dispatcher_routes_unknown_commands():
     assert action.kind == "unknown"
     assert action.payload["command"] == "summon portal"
 
+
+def test_dispatcher_routes_bind_mcp_to_modal_flow():
+    action = CommandDispatcher().dispatch("bind mcp")
+
+    assert action.kind == "bind_mcp"
+
+
+def test_dispatcher_routes_check_and_inspect_mcp_commands():
+    check_action = CommandDispatcher().dispatch("check mcp github")
+    inspect_action = CommandDispatcher().dispatch("inspect mcp github")
+
+    assert check_action.kind == "check_mcp"
+    assert check_action.args == ["github"]
+    assert inspect_action.kind == "inspect_mcp"
+    assert inspect_action.args == ["github"]

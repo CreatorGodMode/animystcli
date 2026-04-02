@@ -73,13 +73,14 @@ animystcli/
 │   ├── index.html         # Interactive HTML preview for GitHub Pages
 │   ├── implementation-plan.md
 │   ├── automation-approvals.md
+│   ├── ralph-status.md
 │   ├── ralph-prompts/
 │   └── ralph-tasks/
 ├── .gitignore
 ├── CLAUDE.md              # This file
 ├── LICENSE                # MIT
 ├── pyproject.toml
-├── ralph.sh               # Autonomous loop wrapper
+├── ralph.sh               # Ralph loop wrapper and status helper
 ├── tests/                 # Non-UI test coverage
 └── README.md
 ```

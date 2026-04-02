@@ -138,6 +138,57 @@ class AgentDetailModal(ModalScreen[None]):
         self.dismiss(None)
 
 
+class BindMCPModal(ModalScreen[Optional[dict[str, Any]]]):
+    """Modal to bind a new MCP server."""
+
+    BINDINGS = [Binding("escape", "cancel", "Cancel")]
+
+    def compose(self):
+        with Container(id="modal-dialog"):
+            yield Static("[bold #c026d3]◬ BIND MCP SERVER ◬[/]", id="modal-title")
+            yield Label("[#504d78]MCP NAME[/]", classes="modal-label")
+            yield Input(placeholder="e.g. slack, notion, custom-api", id="mcp-name", classes="modal-input")
+            yield Label("[#504d78]TRANSPORT TYPE[/]", classes="modal-label")
+            yield Select([("stdio", "stdio"), ("SSE", "sse"), ("HTTP", "http")], value="stdio", id="mcp-type", classes="modal-select")
+            yield Label("[#504d78]COMMAND / URL[/]", classes="modal-label")
+            yield Input(placeholder="npx -y @org/mcp-server or https://...", id="mcp-target", classes="modal-input")
+            with Horizontal(id="modal-actions"):
+                yield Button("◈ BIND", id="btn-create", classes="modal-btn")
+                yield Button("✕ CANCEL", id="btn-cancel", classes="modal-btn-cancel")
+
+    @on(Button.Pressed, "#btn-create")
+    def on_create(self) -> None:
+        name = self.query_one("#mcp-name", Input).value.strip()
+        if not name:
+            self.app.notify("MCP name is required", severity="error")
+            return
+
+        transport = str(self.query_one("#mcp-type", Select).value)
+        target = self.query_one("#mcp-target", Input).value.strip()
+        if not target:
+            self.app.notify("Command or URL is required", severity="error")
+            return
+
+        mcp = {
+            "id": name.lower().replace(" ", "-"),
+            "name": name,
+            "type": transport,
+            "command": target if transport == "stdio" else "",
+            "url": target if transport in {"http", "sse"} else "",
+            "health_status": "unknown",
+            "last_checked": None,
+            "last_error": None,
+        }
+        self.dismiss(mcp)
+
+    @on(Button.Pressed, "#btn-cancel")
+    def on_cancel_btn(self) -> None:
+        self.dismiss(None)
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
 class SettingsModal(ModalScreen[None]):
     """Modal to configure API keys and settings."""
 
@@ -201,4 +252,3 @@ class SettingsModal(ModalScreen[None]):
 
     def action_cancel(self) -> None:
         self.dismiss(None)
-
