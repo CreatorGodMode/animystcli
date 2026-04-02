@@ -11,370 +11,45 @@ Breathe Life Into Code — Agent Development Environment
 
 from __future__ import annotations
 
-import json
-import os
-import subprocess
 import datetime
+import subprocess
 from pathlib import Path
-from dataclasses import dataclass, field, asdict
-from typing import Optional
 
+from rich.markup import escape
+from rich.text import Text
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical, Container
-from textual.screen import ModalScreen
-from textual.widgets import (
-    Header,
-    Footer,
-    Static,
-    Tree,
-    RichLog,
-    Input,
-    Button,
-    Label,
-    Select,
+from textual.containers import Horizontal, Vertical
+from textual.widgets import Button, Footer, Input, RichLog, Static, Tree
+
+from animyst.commands import CommandDispatcher
+from animyst.domain import ConversationSession
+from animyst.llm import stream_chat
+from animyst.services import AgentService, ChatService
+from animyst.storage import (
+    ANIMYST_DIR,
+    AgentRepository,
+    HistoryRepository,
+    McpRepository,
+    ModelRepository,
+    SettingsRepository,
+    ensure_animyst_dir,
 )
-from textual.widget import Widget
-from rich.text import Text
-from rich.panel import Panel
-from rich.table import Table
-from rich.markup import escape
+from animyst.ui import (
+    AgentDetailModal,
+    LOGO,
+    ManifestAgentModal,
+    SettingsModal,
+    WELCOME_MSG,
+    chat_help_text,
+    format_history_summary,
+    format_mcp_detail,
+    format_status,
+    help_text,
+    status_icon,
+)
 
-from animyst.llm import load_settings, save_settings, stream_chat
-
-
-# ═══════════════════════════════════════════════════════════════
-# Data Models
-# ═══════════════════════════════════════════════════════════════
-
-ANIMYST_DIR = Path.home() / ".animyst"
-AGENTS_FILE = ANIMYST_DIR / "agents.json"
-MCPS_FILE = ANIMYST_DIR / "mcps.json"
-MODELS_FILE = ANIMYST_DIR / "models.json"
-
-DEFAULT_MODELS = [
-    {"id": "claude-opus-4-6", "name": "Claude Opus 4.6", "provider": "anthropic"},
-    {"id": "claude-sonnet-4-5-20250929", "name": "Claude Sonnet 4.5", "provider": "anthropic"},
-    {"id": "claude-haiku-4-5-20251001", "name": "Claude Haiku 4.5", "provider": "anthropic"},
-    {"id": "gpt-4.1", "name": "GPT-4.1", "provider": "openai"},
-    {"id": "gpt-4.1-mini", "name": "GPT-4.1 Mini", "provider": "openai"},
-    {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro", "provider": "google"},
-]
-
-DEFAULT_MCPS = [
-    {"id": "filesystem", "name": "Filesystem", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-filesystem"},
-    {"id": "github", "name": "GitHub", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-github"},
-    {"id": "web-search", "name": "Web Search", "type": "stdio", "command": "npx -y @anthropic/web-search-mcp"},
-    {"id": "postgres", "name": "PostgreSQL", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-postgres"},
-    {"id": "memory", "name": "Memory", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-memory"},
-]
-
-
-@dataclass
-class AgentConfig:
-    name: str
-    model: str = "claude-sonnet-4-5-20250514"
-    incantation: str = "You are a helpful assistant."
-    mcps: list[str] = field(default_factory=list)
-    temperature: float = 0.7
-    max_tokens: int = 4096
-    status: str = "dormant"  # dormant, awakened, error
-
-
-def ensure_animyst_dir():
-    """Initialize animyst config directory and defaults."""
-    ANIMYST_DIR.mkdir(parents=True, exist_ok=True)
-    if not MODELS_FILE.exists():
-        MODELS_FILE.write_text(json.dumps(DEFAULT_MODELS, indent=2))
-    if not MCPS_FILE.exists():
-        MCPS_FILE.write_text(json.dumps(DEFAULT_MCPS, indent=2))
-    if not AGENTS_FILE.exists():
-        AGENTS_FILE.write_text(json.dumps([], indent=2))
-
-
-def load_json(path: Path) -> list:
-    try:
-        return json.loads(path.read_text())
-    except Exception:
-        return []
-
-
-def save_json(path: Path, data: list):
-    path.write_text(json.dumps(data, indent=2))
-
-
-def load_agents() -> list[dict]:
-    return load_json(AGENTS_FILE)
-
-
-def save_agents(agents: list[dict]):
-    save_json(AGENTS_FILE, agents)
-
-
-def load_mcps() -> list[dict]:
-    return load_json(MCPS_FILE)
-
-
-def save_mcps(mcps: list[dict]):
-    save_json(MCPS_FILE, mcps)
-
-
-def load_models() -> list[dict]:
-    return load_json(MODELS_FILE)
-
-
-# ═══════════════════════════════════════════════════════════════
-# ASCII Art & Branding
-# ═══════════════════════════════════════════════════════════════
-
-LOGO = """[bold #c026d3]
- █████╗ ███╗   ██╗██╗███╗   ███╗██╗   ██╗███████╗████████╗
-██╔══██╗████╗  ██║██║████╗ ████║╚██╗ ██╔╝██╔════╝╚══██╔══╝
-███████║██╔██╗ ██║██║██╔████╔██║ ╚████╔╝ ███████╗   ██║
-██╔══██║██║╚██╗██║██║██║╚██╔╝██║  ╚██╔╝  ╚════██║   ██║
-██║  ██║██║ ╚████║██║██║ ╚═╝ ██║   ██║   ███████║   ██║
-╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝   ╚═╝   ╚══════╝   ╚═╝[/]
-[#504d78]    ◬ breathe life into code ◬[/]
-"""
-
-WELCOME_MSG = """[#504d78]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/]
-[bold #c026d3]  ◬ ANIMYST[/] [#504d78]v0.1.0 — agent development environment[/]
-[#504d78]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/]
-
-[#c8c4e0]  Welcome, operator. The ether awaits.[/]
-[#c8c4e0]  Manifest agents. Bind MCPs. Ship code.[/]
-
-[#504d78]  Type [bold #c026d3]help[/bold #c026d3] to see available commands.[/]
-[#504d78]  Press [bold #c026d3]Ctrl+N[/bold #c026d3] to manifest a new agent.[/]
-[#504d78]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/]
-"""
-
-
-# ═══════════════════════════════════════════════════════════════
-# Modal Screens
-# ═══════════════════════════════════════════════════════════════
-
-class ManifestAgentModal(ModalScreen[Optional[dict]]):
-    """Modal to manifest a new agent."""
-
-    BINDINGS = [Binding("escape", "cancel", "Cancel")]
-
-    def compose(self) -> ComposeResult:
-        models = load_models()
-        model_options = [(m["name"], m["id"]) for m in models]
-
-        with Container(id="modal-dialog"):
-            yield Static("[bold #c026d3]◬ MANIFEST AGENT ◬[/]", id="modal-title")
-            yield Label("[#504d78]AGENT NAME[/]", classes="modal-label")
-            yield Input(placeholder="e.g. scout, coder, reviewer", id="agent-name", classes="modal-input")
-            yield Label("[#504d78]MODEL[/]", classes="modal-label")
-            yield Select(model_options, value=model_options[1][1] if len(model_options) > 1 else Select.BLANK, id="agent-model", classes="modal-select")
-            yield Label("[#504d78]INCANTATION (system prompt)[/]", classes="modal-label")
-            yield Input(placeholder="You are a...", id="agent-prompt", classes="modal-input")
-            yield Label("[#504d78]TEMPERATURE (0.0-1.0)[/]", classes="modal-label")
-            yield Input(placeholder="0.7", id="agent-temp", classes="modal-input", value="0.7")
-            with Horizontal(id="modal-actions"):
-                yield Button("⚡ MANIFEST", id="btn-create", classes="modal-btn")
-                yield Button("✕ CANCEL", id="btn-cancel", classes="modal-btn-cancel")
-
-    @on(Button.Pressed, "#btn-create")
-    def on_create(self) -> None:
-        name = self.query_one("#agent-name", Input).value.strip()
-        if not name:
-            self.app.notify("Agent name is required", severity="error")
-            return
-        model = self.query_one("#agent-model", Select).value
-        prompt = self.query_one("#agent-prompt", Input).value or "You are a helpful assistant."
-        try:
-            temp = float(self.query_one("#agent-temp", Input).value)
-        except ValueError:
-            temp = 0.7
-
-        agent = {
-            "name": name,
-            "model": str(model),
-            "incantation": prompt,
-            "mcps": [],
-            "temperature": temp,
-            "max_tokens": 4096,
-            "status": "dormant",
-        }
-        self.dismiss(agent)
-
-    @on(Button.Pressed, "#btn-cancel")
-    def on_cancel_btn(self) -> None:
-        self.dismiss(None)
-
-    def action_cancel(self) -> None:
-        self.dismiss(None)
-
-
-class BindMCPModal(ModalScreen[Optional[dict]]):
-    """Modal to bind a new MCP server."""
-
-    BINDINGS = [Binding("escape", "cancel", "Cancel")]
-
-    def compose(self) -> ComposeResult:
-        with Container(id="modal-dialog"):
-            yield Static("[bold #c026d3]◬ BIND MCP SERVER ◬[/]", id="modal-title")
-            yield Label("[#504d78]MCP NAME[/]", classes="modal-label")
-            yield Input(placeholder="e.g. slack, notion, custom-api", id="mcp-name", classes="modal-input")
-            yield Label("[#504d78]TRANSPORT TYPE[/]", classes="modal-label")
-            yield Select([("stdio", "stdio"), ("SSE", "sse"), ("HTTP", "http")], value="stdio", id="mcp-type", classes="modal-select")
-            yield Label("[#504d78]COMMAND / URL[/]", classes="modal-label")
-            yield Input(placeholder="npx -y @org/mcp-server", id="mcp-command", classes="modal-input")
-            with Horizontal(id="modal-actions"):
-                yield Button("◈ BIND", id="btn-create", classes="modal-btn")
-                yield Button("✕ CANCEL", id="btn-cancel", classes="modal-btn-cancel")
-
-    @on(Button.Pressed, "#btn-create")
-    def on_create(self) -> None:
-        name = self.query_one("#mcp-name", Input).value.strip()
-        if not name:
-            self.app.notify("MCP name is required", severity="error")
-            return
-        mcp = {
-            "id": name.lower().replace(" ", "-"),
-            "name": name,
-            "type": str(self.query_one("#mcp-type", Select).value),
-            "command": self.query_one("#mcp-command", Input).value,
-        }
-        self.dismiss(mcp)
-
-    @on(Button.Pressed, "#btn-cancel")
-    def on_cancel_btn(self) -> None:
-        self.dismiss(None)
-
-    def action_cancel(self) -> None:
-        self.dismiss(None)
-
-
-class AgentDetailModal(ModalScreen[None]):
-    """View agent config details."""
-
-    BINDINGS = [Binding("escape", "cancel", "Close")]
-
-    def __init__(self, agent: dict):
-        super().__init__()
-        self.agent = agent
-
-    def compose(self) -> ComposeResult:
-        a = self.agent
-        models = load_models()
-        model_name = a.get("model", "unknown")
-        for m in models:
-            if m["id"] == a.get("model"):
-                model_name = m["name"]
-                break
-
-        mcps_list = ", ".join(a.get("mcps", [])) or "none"
-        status_color = {"dormant": "#504d78", "awakened": "#00ff88", "error": "#ff2244"}.get(a.get("status", "dormant"), "#504d78")
-
-        detail = f"""[bold #00fff7]{a['name'].upper()}[/]
-[#504d78]{'─' * 40}[/]
-[#c026d3]MODEL       [/] [#c8c4e0]{model_name}[/]
-[#c026d3]INCANTATION [/] [#c8c4e0]{a.get('incantation', 'N/A')[:60]}[/]
-[#c026d3]TEMP        [/] [#c8c4e0]{a.get('temperature', 0.7)}[/]
-[#c026d3]TOKENS      [/] [#c8c4e0]{a.get('max_tokens', 4096)}[/]
-[#c026d3]MCPs        [/] [#c8c4e0]{mcps_list}[/]
-[#c026d3]STATUS      [/] [{status_color}]● {a.get('status', 'dormant').upper()}[/]"""
-
-        with Container(id="modal-dialog"):
-            yield Static("[bold #c026d3]◬ AGENT CONFIG ◬[/]", id="modal-title")
-            yield Static(detail)
-            with Horizontal(id="modal-actions"):
-                yield Button("▶ AWAKEN", id="btn-run", classes="modal-btn")
-                yield Button("✕ BANISH", id="btn-delete", classes="modal-btn-cancel")
-                yield Button("CLOSE", id="btn-cancel", classes="modal-btn-cancel")
-
-    @on(Button.Pressed, "#btn-run")
-    def on_run(self) -> None:
-        self.dismiss(None)
-        self.app.run_agent(self.agent)
-
-    @on(Button.Pressed, "#btn-delete")
-    def on_delete(self) -> None:
-        agents = load_agents()
-        agents = [a for a in agents if a["name"] != self.agent["name"]]
-        save_agents(agents)
-        self.dismiss(None)
-        self.app.refresh_agent_tree()
-        self.app.log_console(f"[#ff2244]✕ Agent '{self.agent['name']}' banished[/]")
-        self.app.log_mind(f"[#ff2244]BANISH[/] {self.agent['name']} removed from registry")
-
-    @on(Button.Pressed, "#btn-cancel")
-    def on_close(self) -> None:
-        self.dismiss(None)
-
-    def action_cancel(self) -> None:
-        self.dismiss(None)
-
-
-class SettingsModal(ModalScreen[None]):
-    """Modal to configure API keys and settings."""
-
-    BINDINGS = [Binding("escape", "cancel", "Cancel")]
-
-    def compose(self) -> ComposeResult:
-        settings = load_settings()
-        keys = settings.get("api_keys", {})
-
-        with Container(id="modal-dialog"):
-            yield Static("[bold #c026d3]◬ SETTINGS ◬[/]", id="modal-title")
-            yield Label("[#504d78]ANTHROPIC API KEY[/]", classes="modal-label")
-            yield Input(
-                placeholder="sk-ant-...",
-                value=keys.get("anthropic", ""),
-                password=True,
-                id="key-anthropic",
-                classes="modal-input",
-            )
-            yield Label("[#504d78]OPENAI API KEY[/]", classes="modal-label")
-            yield Input(
-                placeholder="sk-...",
-                value=keys.get("openai", ""),
-                password=True,
-                id="key-openai",
-                classes="modal-input",
-            )
-            yield Label("[#504d78]GOOGLE API KEY[/]", classes="modal-label")
-            yield Input(
-                placeholder="AI...",
-                value=keys.get("google", ""),
-                password=True,
-                id="key-google",
-                classes="modal-input",
-            )
-            with Horizontal(id="modal-actions"):
-                yield Button("💾 SAVE", id="btn-save", classes="modal-btn")
-                yield Button("✕ CANCEL", id="btn-cancel", classes="modal-btn-cancel")
-
-    @on(Button.Pressed, "#btn-save")
-    def on_save(self) -> None:
-        settings = load_settings()
-        keys = {}
-        for provider in ("anthropic", "openai", "google"):
-            val = self.query_one(f"#key-{provider}", Input).value.strip()
-            if val:
-                keys[provider] = val
-        settings["api_keys"] = keys
-        save_settings(settings)
-        self.app.notify("Settings saved", severity="information")
-        self.app.log_mind("[#00ff88]SETTINGS[/] API keys updated")
-        self.dismiss(None)
-
-    @on(Button.Pressed, "#btn-cancel")
-    def on_cancel_btn(self) -> None:
-        self.dismiss(None)
-
-    def action_cancel(self) -> None:
-        self.dismiss(None)
-
-
-# ═══════════════════════════════════════════════════════════════
-# Main Application
-# ═══════════════════════════════════════════════════════════════
 
 class AnimystApp(App):
     """ANIMYST — Breathe Life Into Code."""
@@ -391,22 +66,26 @@ class AnimystApp(App):
         Binding("ctrl+l", "clear_console", "Clear", show=True),
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        # Chat mode state
+        self.agent_repository = AgentRepository()
+        self.mcp_repository = McpRepository()
+        self.model_repository = ModelRepository()
+        self.settings_repository = SettingsRepository()
+        self.history_repository = HistoryRepository()
+        self.agent_service = AgentService(self.agent_repository, self.history_repository)
+        self.chat_service = ChatService(self.history_repository, self.model_repository)
+        self.command_dispatcher = CommandDispatcher()
         self.active_agent: dict | None = None
-        self.chat_history: list[dict] = []
-        self.is_streaming: bool = False
+        self.active_session: ConversationSession | None = None
+        self.is_streaming = False
 
     def compose(self) -> ComposeResult:
-        # Header
         with Horizontal(id="header-bar"):
             yield Static(" ◬ ANIMYST", id="logo")
             yield Static("v0.1.0 │ breathe life into code", id="header-status")
 
-        # Main 3-column layout
         with Horizontal(id="main-container"):
-            # LEFT — Agent Registry
             with Vertical(id="left-panel"):
                 yield Static(" ◬ REGISTRY", id="panel-title-agents")
                 yield Tree("animyst", id="agent-tree")
@@ -415,7 +94,6 @@ class AnimystApp(App):
                     yield Button("◈ Bind MCP (soon)", id="btn-new-mcp", classes="action-btn", disabled=True)
                     yield Button("⚙ Settings", id="btn-settings", classes="action-btn")
 
-            # CENTER — Console
             with Vertical(id="center-panel"):
                 yield Static(" ◬ CONSOLE", id="console-title")
                 yield RichLog(highlight=True, markup=True, id="console-log")
@@ -423,9 +101,7 @@ class AnimystApp(App):
                     yield Static(" animyst › ", id="prompt-label")
                     yield Input(placeholder="type a command...", id="command-input")
 
-            # RIGHT — Git + Agent Mind
             with Vertical(id="right-panel"):
-                # Git panel (top)
                 with Vertical(id="git-panel"):
                     yield Static(" ◬ GIT", id="panel-title-git")
                     yield RichLog(highlight=True, markup=True, id="git-log")
@@ -434,7 +110,6 @@ class AnimystApp(App):
                         yield Button("PR", id="btn-pr", classes="git-btn")
                         yield Button("DIFF", id="btn-diff", classes="git-btn")
 
-                # Agent Mind (bottom)
                 with Vertical(id="mind-panel"):
                     yield Static(" ◬ AGENT MIND", id="panel-title-mind")
                     yield RichLog(highlight=True, markup=True, id="mind-log")
@@ -448,39 +123,36 @@ class AnimystApp(App):
         console.write(Text.from_markup(WELCOME_MSG))
         self.refresh_agent_tree()
         self.refresh_git_panel()
-        self.log_mind(f"[#00fff7]SYS [/] Animyst initialized")
+        self.log_mind("[#00fff7]SYS [/] Animyst initialized")
         self.log_mind(f"[#504d78]SYS [/] Config: {ANIMYST_DIR}")
-        self.log_mind(f"[#504d78]SYS [/] The ether is listening")
-        # Focus on command input
+        self.log_mind("[#504d78]SYS [/] The ether is listening")
         self.query_one("#command-input", Input).focus()
-
-    # ── Tree Management ──────────────────────────────────────
 
     def refresh_agent_tree(self) -> None:
         tree = self.query_one("#agent-tree", Tree)
         tree.clear()
         tree.root.expand()
 
-        # Agents section
-        agents = load_agents()
         agents_node = tree.root.add("[bold #c026d3]⚡ Agents[/]", expand=True)
-        for a in agents:
-            status_icon = {"dormant": "[#504d78]●[/]", "awakened": "[#00ff88]●[/]", "error": "[#ff2244]●[/]"}.get(a.get("status", "dormant"), "[#504d78]●[/]")
-            agents_node.add_leaf(f"{status_icon} [#c8c4e0]{a['name']}[/]", data={"type": "agent", "name": a["name"]})
+        for agent in self.agent_service.list_agents():
+            agents_node.add_leaf(
+                f"{status_icon(agent.get('status', 'dormant'))} [#c8c4e0]{agent['name']}[/]",
+                data={"type": "agent", "name": agent["name"]},
+            )
 
-        # MCPs section
-        mcps = load_mcps()
         mcps_node = tree.root.add("[bold #00fff7]◈ MCPs[/]", expand=True)
-        for m in mcps:
-            mcps_node.add_leaf(f"[#26244a]▸[/] [#c8c4e0]{m['name']}[/]", data={"type": "mcp", "id": m["id"]})
+        for mcp in self.mcp_repository.list_mcps():
+            mcps_node.add_leaf(
+                f"[#26244a]▸[/] [#c8c4e0]{mcp['name']}[/]",
+                data={"type": "mcp", "id": mcp["id"]},
+            )
 
-        # Models section
-        models = load_models()
         models_node = tree.root.add("[bold #8b5cf6]▣ Models[/]", expand=True)
-        for m in models:
-            models_node.add_leaf(f"[#26244a]▸[/] [#c8c4e0]{m['name']}[/]", data={"type": "model", "id": m["id"]})
-
-    # ── Console Logging ──────────────────────────────────────
+        for model in self.model_repository.list_models():
+            models_node.add_leaf(
+                f"[#26244a]▸[/] [#c8c4e0]{model['name']}[/]",
+                data={"type": "model", "id": model["id"]},
+            )
 
     def log_console(self, msg: str) -> None:
         console = self.query_one("#console-log", RichLog)
@@ -492,12 +164,6 @@ class AnimystApp(App):
         now = datetime.datetime.now().strftime("%H:%M:%S")
         mind.write(Text.from_markup(f"[#26244a]{now}[/] {msg}"))
 
-    def log_git(self, msg: str) -> None:
-        git_log = self.query_one("#git-log", RichLog)
-        git_log.write(Text.from_markup(msg))
-
-    # ── Git Panel ────────────────────────────────────────────
-
     @work(thread=True)
     def refresh_git_panel(self) -> None:
         git_log = self.query_one("#git-log", RichLog)
@@ -506,148 +172,122 @@ class AnimystApp(App):
         try:
             branch = subprocess.run(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                capture_output=True, text=True, timeout=5
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
-            if branch.returncode == 0:
-                branch_name = branch.stdout.strip()
+            if branch.returncode != 0:
                 self.app.call_from_thread(
                     git_log.write,
-                    Text.from_markup(f"[bold #8b5cf6]⎇ {branch_name}[/]")
+                    Text.from_markup("[#504d78]Not a git repository[/]"),
                 )
+                self.app.call_from_thread(
+                    git_log.write,
+                    Text.from_markup("[#504d78]Run [bold #00fff7]git init[/bold #00fff7] to start[/]"),
+                )
+                return
 
-                status = subprocess.run(
-                    ["git", "status", "--porcelain"],
-                    capture_output=True, text=True, timeout=5
-                )
-                changed = len([l for l in status.stdout.strip().split("\n") if l.strip()])
-                if changed:
-                    self.app.call_from_thread(
-                        git_log.write,
-                        Text.from_markup(f"[#f59e0b]{changed} file(s) changed[/]")
-                    )
-                else:
-                    self.app.call_from_thread(
-                        git_log.write,
-                        Text.from_markup("[#00ff88]✓ working tree clean[/]")
-                    )
-
-                self.app.call_from_thread(
-                    git_log.write,
-                    Text.from_markup(f"\n[#504d78]{'─' * 30}[/]")
-                )
-                self.app.call_from_thread(
-                    git_log.write,
-                    Text.from_markup("[bold #504d78]RECENT COMMITS[/]")
-                )
-
-                log = subprocess.run(
-                    ["git", "log", "--oneline", "-8", "--pretty=format:%h %s"],
-                    capture_output=True, text=True, timeout=5
-                )
-                if log.returncode == 0:
-                    for line in log.stdout.strip().split("\n")[:8]:
-                        if line.strip():
-                            parts = line.split(" ", 1)
-                            sha = parts[0] if parts else ""
-                            msg = parts[1] if len(parts) > 1 else ""
-                            self.app.call_from_thread(
-                                git_log.write,
-                                Text.from_markup(f"[#8b5cf6]{sha}[/] [#c8c4e0]{msg[:28]}[/]")
-                            )
-            else:
-                self.app.call_from_thread(
-                    git_log.write,
-                    Text.from_markup("[#504d78]Not a git repository[/]")
-                )
-                self.app.call_from_thread(
-                    git_log.write,
-                    Text.from_markup("[#504d78]Run [bold #00fff7]git init[/bold #00fff7] to start[/]")
-                )
-        except Exception as e:
+            branch_name = branch.stdout.strip()
             self.app.call_from_thread(
                 git_log.write,
-                Text.from_markup(f"[#ff2244]Git error: {e}[/]")
+                Text.from_markup(f"[bold #8b5cf6]⎇ {branch_name}[/]"),
             )
 
-    # ── Agent Execution ──────────────────────────────────────
+            status = subprocess.run(
+                ["git", "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            changed = len([line for line in status.stdout.strip().split("\n") if line.strip()])
+            status_text = "[#00ff88]✓ working tree clean[/]" if not changed else f"[#f59e0b]{changed} file(s) changed[/]"
+            self.app.call_from_thread(git_log.write, Text.from_markup(status_text))
+            self.app.call_from_thread(git_log.write, Text.from_markup("\n[#504d78]──────────────────────────────[/]"))
+            self.app.call_from_thread(git_log.write, Text.from_markup("[bold #504d78]RECENT COMMITS[/]"))
+
+            log = subprocess.run(
+                ["git", "log", "--oneline", "-8", "--pretty=format:%h %s"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if log.returncode == 0:
+                for line in log.stdout.strip().split("\n")[:8]:
+                    if not line.strip():
+                        continue
+                    sha, _, message = line.partition(" ")
+                    self.app.call_from_thread(
+                        git_log.write,
+                        Text.from_markup(f"[#8b5cf6]{sha}[/] [#c8c4e0]{message[:28]}[/]"),
+                    )
+        except Exception as error:
+            self.app.call_from_thread(
+                git_log.write,
+                Text.from_markup(f"[#ff2244]Git error: {escape(str(error))}[/]"),
+            )
 
     def run_agent(self, agent: dict) -> None:
-        """Enter chat mode with an agent."""
         name = agent["name"]
         model = agent.get("model", "unknown")
+        self.agent_service.set_status(name, "awakened")
+        self.refresh_agent_tree()
+        self.active_agent = agent
+        self.active_session, resumed = self.chat_service.start_session(name)
+        self.is_streaming = False
+
         self.log_console(f"[bold #00ff88]▶ AWAKENING[/] [#00fff7]{name}[/] [#504d78]on {model}[/]")
-        self.log_console(f"[#504d78]Chat mode active. Type messages to converse.[/]")
-        self.log_console(f"[#504d78]Use [bold #c026d3]/sleep[/bold #c026d3] to exit chat, [bold #c026d3]/help[/bold #c026d3] for commands.[/]")
+        self.log_console("[#504d78]Chat mode active. Type messages to converse.[/]")
+        self.log_console("[#504d78]Use [bold #c026d3]/sleep[/bold #c026d3] to exit chat, [bold #c026d3]/help[/bold #c026d3] for commands.[/]")
+        if resumed and self.active_session.message_count:
+            self.log_console(
+                f"[#00fff7]Resumed history:[/] [#c8c4e0]{self.active_session.turn_count} turn(s), "
+                f"{self.active_session.message_count} message(s)[/]"
+            )
         self.log_mind(f"[#00ff88]AWAKEN[/] {name} channeling will")
         self.log_mind(f"[#504d78]       [/] model: {model}")
 
-        # Update agent status
-        agents = load_agents()
-        for a in agents:
-            if a["name"] == name:
-                a["status"] = "awakened"
-        save_agents(agents)
-        self.refresh_agent_tree()
-
-        # Enter chat mode
-        self.active_agent = agent
-        self.chat_history = []
-        self.is_streaming = False
-
-        # Update prompt
         prompt_label = self.query_one("#prompt-label", Static)
         prompt_label.update(f" {name} › ")
-        cmd_input = self.query_one("#command-input", Input)
-        cmd_input.placeholder = "send a message..."
+        command_input = self.query_one("#command-input", Input)
+        command_input.placeholder = "send a message..."
 
     def send_chat_message(self, msg: str) -> None:
-        """Send a user message to the active agent."""
-        if not self.active_agent:
+        if not self.active_agent or not self.active_session:
             return
-
-        self.chat_history.append({"role": "user", "content": msg})
-        name = self.active_agent["name"]
+        self.active_session = self.chat_service.append_user_message(self.active_session, msg)
         self.log_console(f"[bold #00fff7]YOU ›[/] [#c8c4e0]{escape(msg)}[/]")
         self.is_streaming = True
         self.stream_agent_response()
 
     @work(thread=True)
     def stream_agent_response(self) -> None:
-        """Stream LLM response for the active agent."""
         import time
 
-        agent = self.active_agent
-        if not agent:
+        if not self.active_agent or not self.active_session:
+            self.is_streaming = False
             return
 
+        agent = self.active_agent
+        session = self.active_session
         name = agent["name"]
-        model_id = agent.get("model", "claude-sonnet-4-5-20250514")
-        models = load_models()
-        provider = "anthropic"
-        for m in models:
-            if m["id"] == model_id:
-                provider = m.get("provider", "anthropic")
-                break
+        model_id = agent.get("model", "claude-sonnet-4-5-20250929")
+        provider = self.chat_service.resolve_provider(model_id)
+        console = self.query_one("#console-log", RichLog)
+        full_response = ""
+        line_buffer = ""
+        last_flush = time.monotonic()
 
         self.app.call_from_thread(
             self.log_mind,
             f"[#00fff7]STREAM[/] {name} → {provider}/{model_id[:30]}",
         )
-
-        full_response = ""
-        line_buffer = ""
-        console = self.query_one("#console-log", RichLog)
-
-        # Write the agent name prefix
         self.app.call_from_thread(
             console.write,
             Text.from_markup(f"[bold #c026d3]{name} ›[/] "),
         )
 
-        last_flush = time.monotonic()
-
         for event in stream_chat(
-            messages=self.chat_history,
+            messages=session.to_llm_messages(),
             model=model_id,
             provider=provider,
             system=agent.get("incantation", "You are a helpful assistant."),
@@ -657,9 +297,8 @@ class AnimystApp(App):
             if event.type == "text":
                 full_response += event.content
                 line_buffer += event.content
-
-                # Flush complete lines for smooth display
                 now = time.monotonic()
+
                 if "\n" in line_buffer:
                     lines = line_buffer.split("\n")
                     for line in lines[:-1]:
@@ -669,51 +308,44 @@ class AnimystApp(App):
                         )
                     line_buffer = lines[-1]
                     last_flush = now
-                elif now - last_flush > 0.08:
-                    # Periodic flush for long lines
-                    if line_buffer:
-                        self.app.call_from_thread(
-                            console.write,
-                            Text.from_markup(f"[#c8c4e0]{escape(line_buffer)}[/]"),
-                        )
-                        line_buffer = ""
-                        last_flush = now
+                elif now - last_flush > 0.08 and line_buffer:
+                    self.app.call_from_thread(
+                        console.write,
+                        Text.from_markup(f"[#c8c4e0]{escape(line_buffer)}[/]"),
+                    )
+                    line_buffer = ""
+                    last_flush = now
 
             elif event.type == "error":
+                self.agent_service.set_status(name, "error")
+                self.app.call_from_thread(self.refresh_agent_tree)
                 self.app.call_from_thread(
                     self.log_console,
                     f"[#ff2244]ERROR:[/] [#c8c4e0]{escape(event.content)}[/]",
                 )
                 self.app.call_from_thread(
                     self.log_mind,
-                    f"[#ff2244]ERROR[/] {event.content[:60]}",
+                    f"[#ff2244]ERROR[/] {escape(event.content[:60])}",
                 )
-                # Update agent status
-                agents = load_agents()
-                for a in agents:
-                    if a["name"] == name:
-                        a["status"] = "error"
-                save_agents(agents)
-                self.app.call_from_thread(self.refresh_agent_tree)
                 self.is_streaming = False
                 return
 
             elif event.type == "done":
-                # Flush remaining buffer
                 if line_buffer:
                     self.app.call_from_thread(
                         console.write,
                         Text.from_markup(f"[#c8c4e0]{escape(line_buffer)}[/]"),
                     )
 
-                # Save to history
                 if full_response:
-                    self.chat_history.append({
-                        "role": "assistant",
-                        "content": full_response,
-                    })
+                    self.active_session = self.chat_service.complete_assistant_message(
+                        session,
+                        full_response,
+                        event.usage,
+                    )
+                elif event.usage:
+                    self.active_session = self.chat_service.record_usage(session, event.usage)
 
-                # Log usage
                 if event.usage:
                     inp = event.usage.get("input_tokens", 0)
                     out = event.usage.get("output_tokens", 0)
@@ -722,44 +354,37 @@ class AnimystApp(App):
                         f"[#f59e0b]USAGE[/] ↑{inp} ↓{out} tokens",
                     )
 
+                turns = self.active_session.turn_count if self.active_session else session.turn_count
                 self.app.call_from_thread(
                     self.log_mind,
-                    f"[#00ff88]DONE[/] {name} response complete "
-                    f"({len(self.chat_history) // 2} turns)",
+                    f"[#00ff88]DONE[/] {name} response complete ({turns} turns)",
                 )
 
         self.is_streaming = False
 
     def exit_chat_mode(self) -> None:
-        """Exit chat mode and return to command mode."""
         if not self.active_agent:
             return
 
         name = self.active_agent["name"]
-        turns = len(self.chat_history) // 2
-
-        # Mark agent dormant
-        agents = load_agents()
-        for a in agents:
-            if a["name"] == name:
-                a["status"] = "dormant"
-        save_agents(agents)
+        turns = self.active_session.turn_count if self.active_session else 0
+        self.agent_service.set_status(name, "dormant")
         self.refresh_agent_tree()
 
+        if self.active_session:
+            self.chat_service.end_session(self.active_session)
+
         self.active_agent = None
-        self.chat_history = []
+        self.active_session = None
         self.is_streaming = False
 
-        # Restore prompt
         prompt_label = self.query_one("#prompt-label", Static)
         prompt_label.update(" animyst › ")
-        cmd_input = self.query_one("#command-input", Input)
-        cmd_input.placeholder = "type a command..."
+        command_input = self.query_one("#command-input", Input)
+        command_input.placeholder = "type a command..."
 
         self.log_console(f"[#504d78]{name} returned to dormancy ({turns} turns)[/]")
         self.log_mind(f"[#f59e0b]SLEEP[/] {name} → dormant ({turns} turns)")
-
-    # ── Command Processing ───────────────────────────────────
 
     @on(Input.Submitted, "#command-input")
     def on_command(self, event: Input.Submitted) -> None:
@@ -770,236 +395,202 @@ class AnimystApp(App):
         input_widget = self.query_one("#command-input", Input)
         input_widget.value = ""
 
-        # Block input while streaming
         if self.is_streaming:
             self.notify("Agent is still responding...", severity="warning")
             return
 
-        # Chat mode: route messages vs commands
         if self.active_agent:
             if cmd.startswith("/"):
-                # Slash commands in chat mode
                 raw = cmd[1:].strip()
-                parts = raw.split()
-                subcmd = parts[0].lower() if parts else ""
+                subcmd = raw.split()[0].lower() if raw.split() else ""
 
                 if subcmd == "sleep":
                     self.exit_chat_mode()
                 elif subcmd == "history":
-                    turns = len(self.chat_history) // 2
-                    self.log_console(f"[#00fff7]Chat history: {turns} turn(s), {len(self.chat_history)} messages[/]")
+                    summary = self.agent_service.history_summary(self.active_agent["name"])
+                    self.log_console(format_history_summary(summary))
                 elif subcmd == "clear":
                     self.action_clear_console()
                 elif subcmd == "help":
                     self.cmd_chat_help()
                 else:
-                    # Fall through to normal command processing
                     self.log_console(f"[bold #c026d3]◬[/] [#00fff7]{escape(raw)}[/]")
                     self._process_command(raw)
                 return
-            else:
-                # Plain text → chat message
-                self.send_chat_message(cmd)
-                return
 
-        # Normal command mode
+            self.send_chat_message(cmd)
+            return
+
         self.log_console(f"[bold #c026d3]◬[/] [#00fff7]{escape(cmd)}[/]")
         self._process_command(cmd)
 
     def _process_command(self, cmd: str) -> None:
-        """Process a command string (shared by normal and chat mode)."""
-        parts = cmd.split()
-        command = parts[0].lower()
-        args = parts[1:]
+        action = self.command_dispatcher.dispatch(cmd)
 
-        if command == "help":
+        if action.kind == "noop":
+            return
+        if action.kind == "help":
             self.cmd_help()
-        elif command in ("agents", "ls"):
+        elif action.kind == "list_agents":
             self.cmd_list_agents()
-        elif command == "mcps":
+        elif action.kind == "list_mcps":
             self.cmd_list_mcps()
-        elif command == "models":
+        elif action.kind == "list_models":
             self.cmd_list_models()
-        elif command in ("run", "manifest", "awaken") and args:
-            self.cmd_run_agent(args[0])
-        elif command in ("new", "manifest"):
-            if args and args[0] == "mcp":
-                self.log_console("[#f59e0b]◈ MCP binding coming in v0.2[/]")
-            else:
-                self.action_manifest_agent()
-        elif command in ("bind",) and args:
+        elif action.kind == "run_agent":
+            self.cmd_run_agent(action.args[0])
+        elif action.kind == "manifest_agent":
+            self.action_manifest_agent()
+        elif action.kind == "bind_mcp_info":
             self.log_console("[#f59e0b]◈ MCP binding coming in v0.2[/]")
-        elif command == "inspect" and args:
-            self.cmd_inspect(args[0])
-        elif command in ("delete", "banish") and args:
-            self.cmd_delete_agent(args[0])
-        elif command == "export" and args:
-            self.cmd_export(args[0])
-        elif command == "clear":
+        elif action.kind == "inspect_agent":
+            self.cmd_inspect(action.args[0])
+        elif action.kind == "delete_agent":
+            self.cmd_delete_agent(action.args[0])
+        elif action.kind == "export_agent":
+            self.cmd_export(action.args[0])
+        elif action.kind == "clear_console":
             self.action_clear_console()
-        elif command == "git" and args:
-            self.cmd_git(args)
-        elif command == "status":
+        elif action.kind == "git":
+            self.cmd_git(action.args)
+        elif action.kind == "status":
             self.cmd_status()
-        elif command == "ascii":
-            console = self.query_one("#console-log", RichLog)
-            console.write(Text.from_markup(LOGO))
+        elif action.kind == "ascii":
+            self.query_one("#console-log", RichLog).write(Text.from_markup(LOGO))
         else:
-            self.log_console(f"[#ff2244]Unknown command:[/] [#c8c4e0]{escape(cmd)}[/]")
-            self.log_console(f"[#504d78]Type [bold #c026d3]help[/bold #c026d3] for available commands[/]")
+            command_name = action.payload.get("command", cmd)
+            self.log_console(f"[#ff2244]Unknown command:[/] [#c8c4e0]{escape(command_name)}[/]")
+            self.log_console("[#504d78]Type [bold #c026d3]help[/bold #c026d3] for available commands[/]")
 
     def cmd_help(self) -> None:
-        help_text = f"""
-[bold #c026d3]◬ ANIMYST COMMANDS ◬[/]
-[#504d78]{'─' * 44}[/]
-[bold #00fff7]agents[/]         [#c8c4e0]List all configured agents[/]
-[bold #00fff7]mcps[/]           [#c8c4e0]List all MCP servers[/]
-[bold #00fff7]models[/]         [#c8c4e0]List available models[/]
-[bold #00fff7]manifest[/]       [#c8c4e0]Manifest a new agent[/]
-[bold #00fff7]bind mcp[/]       [#c8c4e0]Bind a new MCP server (coming soon)[/]
-[bold #00fff7]awaken <n>[/]   [#c8c4e0]Awaken an agent[/]
-[bold #00fff7]inspect <n>[/]  [#c8c4e0]View agent configuration[/]
-[bold #00fff7]banish <n>[/]   [#c8c4e0]Banish an agent[/]
-[bold #00fff7]export <n>[/]   [#c8c4e0]Export agent config as JSON[/]
-[bold #00fff7]git <cmd>[/]      [#c8c4e0]Run git commands[/]
-[bold #00fff7]status[/]         [#c8c4e0]System status overview[/]
-[bold #00fff7]clear[/]          [#c8c4e0]Clear console[/]
-[bold #00fff7]ascii[/]          [#c8c4e0]Show animyst logo[/]
-[#504d78]{'─' * 44}[/]
-[#504d78]Shortcuts: Ctrl+N manifest │ Ctrl+G git[/]
-[#504d78]           Ctrl+L clear    │ Ctrl+R refresh[/]
-[#504d78]Settings:  Click ⚙ Settings to add API keys[/]"""
-        self.log_console(help_text)
+        self.log_console(help_text())
 
     def cmd_chat_help(self) -> None:
-        help_text = f"""
-[bold #c026d3]◬ CHAT MODE COMMANDS ◬[/]
-[#504d78]{'─' * 44}[/]
-[#c8c4e0]Type messages to chat with the agent.[/]
-[#c8c4e0]Prefix with [bold #c026d3]/[/bold #c026d3] for commands:[/]
-[#504d78]{'─' * 44}[/]
-[bold #00fff7]/sleep[/]         [#c8c4e0]Exit chat mode (agent → dormant)[/]
-[bold #00fff7]/history[/]       [#c8c4e0]Show conversation turn count[/]
-[bold #00fff7]/clear[/]         [#c8c4e0]Clear console output[/]
-[bold #00fff7]/help[/]          [#c8c4e0]Show this help[/]
-[bold #00fff7]/<command>[/]     [#c8c4e0]Run any animyst command[/]
-[#504d78]{'─' * 44}[/]"""
-        self.log_console(help_text)
+        self.log_console(chat_help_text())
 
     def cmd_list_agents(self) -> None:
-        agents = load_agents()
+        agents = self.agent_service.list_agents()
         if not agents:
             self.log_console("[#504d78]No agents manifested. Create one with [bold #c026d3]manifest[/bold #c026d3][/]")
             return
         self.log_console("[bold #c026d3]◬ AGENTS[/]")
-        for a in agents:
-            status_icon = {"dormant": "[#504d78]●[/]", "awakened": "[#00ff88]●[/]", "error": "[#ff2244]●[/]"}.get(a.get("status", "dormant"), "[#504d78]●[/]")
-            model_short = a.get("model", "?")[:20]
-            self.log_console(f"  {status_icon} [bold #00fff7]{a['name']:<16}[/] [#504d78]{model_short}[/]")
+        for agent in agents:
+            self.log_console(
+                f"  {status_icon(agent.get('status', 'dormant'))} "
+                f"[bold #00fff7]{agent['name']:<16}[/] [#504d78]{agent.get('model', '?')[:20]}[/]"
+            )
 
     def cmd_list_mcps(self) -> None:
-        mcps = load_mcps()
         self.log_console("[bold #00fff7]◈ BOUND MCP SERVERS[/]")
-        for m in mcps:
-            self.log_console(f"  [#26244a]▸[/] [bold #c8c4e0]{m['name']:<16}[/] [#504d78]{m.get('type', 'stdio')}[/]")
+        for mcp in self.mcp_repository.list_mcps():
+            self.log_console(
+                f"  [#26244a]▸[/] [bold #c8c4e0]{mcp['name']:<16}[/] [#504d78]{mcp.get('type', 'stdio')}[/]"
+            )
 
     def cmd_list_models(self) -> None:
-        models = load_models()
         self.log_console("[bold #8b5cf6]▣ MODELS[/]")
-        for m in models:
-            self.log_console(f"  [#26244a]▸[/] [bold #c8c4e0]{m['name']:<24}[/] [#504d78]{m.get('provider', '?')}[/]")
+        for model in self.model_repository.list_models():
+            self.log_console(
+                f"  [#26244a]▸[/] [bold #c8c4e0]{model['name']:<24}[/] [#504d78]{model.get('provider', '?')}[/]"
+            )
 
     def cmd_run_agent(self, name: str) -> None:
-        agents = load_agents()
-        agent = next((a for a in agents if a["name"].lower() == name.lower()), None)
-        if agent:
-            self.run_agent(agent)
-        else:
+        agent = self.agent_service.get_agent(name)
+        if not agent:
             self.log_console(f"[#ff2244]Agent '{escape(name)}' not found[/]")
+            return
+        self.run_agent(agent)
+
+    def _history_line_for_agent(self, agent_name: str) -> str:
+        summary = self.agent_service.history_summary(agent_name)
+        if not summary.session_count:
+            return "[#504d78]none[/]"
+        updated = summary.last_updated or "unknown"
+        return (
+            f"[#c8c4e0]{summary.turn_count} turns across {summary.session_count} session(s)[/] "
+            f"[#504d78]updated {escape(updated)}[/]"
+        )
 
     def cmd_inspect(self, name: str) -> None:
-        agents = load_agents()
-        agent = next((a for a in agents if a["name"].lower() == name.lower()), None)
-        if agent:
-            self.push_screen(AgentDetailModal(agent))
-        else:
+        agent = self.agent_service.get_agent(name)
+        if not agent:
             self.log_console(f"[#ff2244]Agent '{escape(name)}' not found[/]")
+            return
+        self.push_screen(
+            AgentDetailModal(
+                agent=agent,
+                model_repository=self.model_repository,
+                history_line=self._history_line_for_agent(agent["name"]),
+                on_delete=self.cmd_delete_agent,
+                on_awaken=self.run_agent,
+            )
+        )
 
     def cmd_delete_agent(self, name: str) -> None:
-        agents = load_agents()
-        original_len = len(agents)
-        agents = [a for a in agents if a["name"].lower() != name.lower()]
-        if len(agents) < original_len:
-            save_agents(agents)
-            self.refresh_agent_tree()
-            self.log_console(f"[#ff2244]✕ Agent '{escape(name)}' banished[/]")
-            self.log_mind(f"[#ff2244]BANISH[/] {name} removed")
-        else:
+        if not self.agent_service.delete_agent(name):
             self.log_console(f"[#ff2244]Agent '{escape(name)}' not found[/]")
+            return
+        self.refresh_agent_tree()
+        self.log_console(f"[#ff2244]✕ Agent '{escape(name)}' banished[/]")
+        self.log_mind(f"[#ff2244]BANISH[/] {name} removed")
 
     def cmd_export(self, name: str) -> None:
-        agents = load_agents()
-        agent = next((a for a in agents if a["name"].lower() == name.lower()), None)
-        if agent:
-            export_path = Path.cwd() / f"{agent['name']}_agent.json"
-            export_path.write_text(json.dumps(agent, indent=2))
-            self.log_console(f"[#00ff88]✓ Exported to {export_path}[/]")
-            self.log_mind(f"[#00ff88]EXPORT[/] {name} → {export_path.name}")
-        else:
+        export_path = Path.cwd() / f"{name}_agent.json"
+        if not self.agent_service.export_agent(name, export_path):
             self.log_console(f"[#ff2244]Agent '{escape(name)}' not found[/]")
+            return
+        self.log_console(f"[#00ff88]✓ Exported to {export_path}[/]")
+        self.log_mind(f"[#00ff88]EXPORT[/] {name} → {export_path.name}")
 
     @work(thread=True)
     def cmd_git(self, args: list[str]) -> None:
         try:
             result = subprocess.run(
                 ["git"] + args,
-                capture_output=True, text=True, timeout=15
+                capture_output=True,
+                text=True,
+                timeout=15,
             )
             output = result.stdout.strip() or result.stderr.strip()
             if output:
                 for line in output.split("\n"):
                     self.app.call_from_thread(
                         self.log_console,
-                        f"[#c8c4e0]{escape(line)}[/]"
+                        f"[#c8c4e0]{escape(line)}[/]",
                     )
             self.app.call_from_thread(self.refresh_git_panel)
-        except Exception as e:
+        except Exception as error:
             self.app.call_from_thread(
                 self.log_console,
-                f"[#ff2244]Git error: {e}[/]"
+                f"[#ff2244]Git error: {escape(str(error))}[/]",
             )
 
     def cmd_status(self) -> None:
-        agents = load_agents()
-        mcps = load_mcps()
-        models = load_models()
-        awakened = sum(1 for a in agents if a.get("status") == "awakened")
-        self.log_console(f"""
-[bold #c026d3]◬ ANIMYST STATUS ◬[/]
-[#504d78]{'─' * 30}[/]
-[#00fff7]Agents:[/]  [#c8c4e0]{len(agents)} manifested, {awakened} awakened[/]
-[#00fff7]MCPs:[/]    [#c8c4e0]{len(mcps)} bound[/]
-[#00fff7]Models:[/]  [#c8c4e0]{len(models)} available[/]
-[#00fff7]Config:[/]  [#c8c4e0]{ANIMYST_DIR}[/]
-""")
-
-    # ── Actions ──────────────────────────────────────────────
+        agents = self.agent_service.list_agents()
+        awakened = sum(1 for agent in agents if agent.get("status") == "awakened")
+        self.log_console(
+            format_status(
+                agent_count=len(agents),
+                awakened_count=awakened,
+                mcp_count=len(self.mcp_repository.list_mcps()),
+                model_count=len(self.model_repository.list_models()),
+                config_path=str(ANIMYST_DIR),
+            )
+        )
 
     def action_manifest_agent(self) -> None:
-        def on_result(result: Optional[dict]) -> None:
-            if result:
-                agents = load_agents()
-                if any(a["name"].lower() == result["name"].lower() for a in agents):
-                    self.log_console(f"[#ff2244]Agent '{result['name']}' already exists[/]")
-                    return
-                agents.append(result)
-                save_agents(agents)
-                self.refresh_agent_tree()
-                self.log_console(f"[#00ff88]⚡ Agent '{result['name']}' manifested[/]")
-                self.log_mind(f"[#00ff88]MANIFEST[/] {result['name']}")
-                self.log_mind(f"[#504d78]         [/] model: {result['model'][:30]}")
+        def on_result(result: dict | None) -> None:
+            if not result:
+                return
+            if not self.agent_service.create_agent(result):
+                self.log_console(f"[#ff2244]Agent '{result['name']}' already exists[/]")
+                return
+            self.refresh_agent_tree()
+            self.log_console(f"[#00ff88]⚡ Agent '{result['name']}' manifested[/]")
+            self.log_mind(f"[#00ff88]MANIFEST[/] {result['name']}")
+            self.log_mind(f"[#504d78]         [/] model: {result['model'][:30]}")
 
-        self.push_screen(ManifestAgentModal(), callback=on_result)
+        self.push_screen(ManifestAgentModal(self.model_repository), callback=on_result)
 
     def action_bind_mcp(self) -> None:
         self.notify("MCP binding coming in v0.2", severity="information")
@@ -1018,8 +609,6 @@ class AnimystApp(App):
         console.clear()
         self.log_console("[#504d78]Console cleared[/]")
 
-    # ── Event Handlers ───────────────────────────────────────
-
     @on(Button.Pressed, "#btn-new-agent")
     def on_new_agent_btn(self) -> None:
         self.action_manifest_agent()
@@ -1030,7 +619,7 @@ class AnimystApp(App):
 
     @on(Button.Pressed, "#btn-settings")
     def on_settings_btn(self) -> None:
-        self.push_screen(SettingsModal())
+        self.push_screen(SettingsModal(self.settings_repository))
 
     @on(Button.Pressed, "#btn-push")
     def on_push_btn(self) -> None:
@@ -1050,30 +639,21 @@ class AnimystApp(App):
     @on(Tree.NodeSelected, "#agent-tree")
     def on_tree_select(self, event: Tree.NodeSelected) -> None:
         node = event.node
-        if node.data and isinstance(node.data, dict):
-            if node.data.get("type") == "agent":
-                agents = load_agents()
-                agent = next(
-                    (a for a in agents if a["name"] == node.data["name"]),
-                    None,
-                )
-                if agent:
-                    self.push_screen(AgentDetailModal(agent))
-            elif node.data.get("type") == "mcp":
-                mcps = load_mcps()
-                mcp = next(
-                    (m for m in mcps if m["id"] == node.data["id"]),
-                    None,
-                )
-                if mcp:
-                    self.log_console(
-                        f"[bold #00fff7]◈ MCP: {mcp['name']}[/]\n"
-                        f"  [#c026d3]Type:[/]    [#c8c4e0]{mcp.get('type', 'stdio')}[/]\n"
-                        f"  [#c026d3]Command:[/] [#c8c4e0]{mcp.get('command', 'N/A')}[/]"
-                    )
+        if not node.data or not isinstance(node.data, dict):
+            return
+
+        if node.data.get("type") == "agent":
+            self.cmd_inspect(node.data["name"])
+        elif node.data.get("type") == "mcp":
+            mcp = next(
+                (item for item in self.mcp_repository.list_mcps() if item["id"] == node.data["id"]),
+                None,
+            )
+            if mcp:
+                self.log_console(format_mcp_detail(mcp))
 
 
-def main():
+def main() -> None:
     """Entry point for animyst CLI."""
     app = AnimystApp()
     app.run()

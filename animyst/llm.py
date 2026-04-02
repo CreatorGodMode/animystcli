@@ -4,33 +4,28 @@ ANIMYST LLM Integration — Provider streaming and settings management.
 
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Generator
 
-ANIMYST_DIR = Path.home() / ".animyst"
-SETTINGS_FILE = ANIMYST_DIR / "settings.json"
+from animyst.storage import SettingsRepository
 
 
 # ═══════════════════════════════════════════════════════════════
 # Settings I/O
 # ═══════════════════════════════════════════════════════════════
 
+SETTINGS_REPOSITORY = SettingsRepository()
+
+
 def load_settings() -> dict:
-    """Load settings from ~/.animyst/settings.json."""
-    try:
-        return json.loads(SETTINGS_FILE.read_text())
-    except Exception:
-        return {}
+    """Load settings from the shared settings repository."""
+    return SETTINGS_REPOSITORY.load()
 
 
 def save_settings(settings: dict) -> None:
-    """Save settings to ~/.animyst/settings.json with restricted permissions."""
-    ANIMYST_DIR.mkdir(parents=True, exist_ok=True)
-    SETTINGS_FILE.write_text(json.dumps(settings, indent=2))
-    SETTINGS_FILE.chmod(0o600)
+    """Save settings with restricted permissions."""
+    SETTINGS_REPOSITORY.save(settings)
 
 
 def get_api_key(provider: str) -> str | None:
