@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -27,11 +26,11 @@ DEFAULT_MODELS = [
 ]
 
 DEFAULT_MCPS = [
-    {"id": "filesystem", "name": "Filesystem", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-filesystem"},
-    {"id": "github", "name": "GitHub", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-github"},
-    {"id": "web-search", "name": "Web Search", "type": "stdio", "command": "npx -y @anthropic/web-search-mcp"},
-    {"id": "postgres", "name": "PostgreSQL", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-postgres"},
-    {"id": "memory", "name": "Memory", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-memory"},
+    {"id": "filesystem", "name": "Filesystem", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-filesystem", "health_status": "unknown", "last_checked": None, "last_error": None},
+    {"id": "github", "name": "GitHub", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-github", "health_status": "unknown", "last_checked": None, "last_error": None},
+    {"id": "web-search", "name": "Web Search", "type": "stdio", "command": "npx -y @anthropic/web-search-mcp", "health_status": "unknown", "last_checked": None, "last_error": None},
+    {"id": "postgres", "name": "PostgreSQL", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-postgres", "health_status": "unknown", "last_checked": None, "last_error": None},
+    {"id": "memory", "name": "Memory", "type": "stdio", "command": "npx -y @modelcontextprotocol/server-memory", "health_status": "unknown", "last_checked": None, "last_error": None},
 ]
 
 
@@ -68,10 +67,32 @@ class McpRepository:
 
     def list_mcps(self) -> list[dict[str, Any]]:
         data = load_json(self.path, DEFAULT_MCPS)
-        return [mcp for mcp in data if isinstance(mcp, dict)]
+        return [self._normalize_mcp(mcp) for mcp in data if isinstance(mcp, dict)]
 
     def save_mcps(self, mcps: list[dict[str, Any]]) -> None:
-        save_json(self.path, mcps)
+        save_json(self.path, [self._normalize_mcp(mcp) for mcp in mcps if isinstance(mcp, dict)])
+
+    @staticmethod
+    def _normalize_mcp(mcp: dict[str, Any]) -> dict[str, Any]:
+        transport = str(mcp.get("type", "stdio")).lower()
+        command = mcp.get("command", "")
+        url = mcp.get("url", "")
+        if transport == "stdio" and not command and url:
+            command = url
+        if transport in {"http", "sse"} and not url and command:
+            url = command
+            command = ""
+        normalized = {
+            "id": mcp.get("id", ""),
+            "name": mcp.get("name", ""),
+            "type": transport,
+            "command": command if transport == "stdio" else "",
+            "url": url if transport in {"http", "sse"} else "",
+            "health_status": mcp.get("health_status", "unknown"),
+            "last_checked": mcp.get("last_checked"),
+            "last_error": mcp.get("last_error"),
+        }
+        return normalized
 
 
 class ModelRepository:
@@ -158,4 +179,3 @@ class HistoryRepository:
             message_count=sum(session.message_count for session in sessions),
             last_updated=max(session.updated_at for session in sessions),
         )
-

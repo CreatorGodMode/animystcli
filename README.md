@@ -60,7 +60,7 @@ Most AI tools run agents — Animyst lets you **build** them.
 
 **🔑 Settings Modal** — Configure API keys for all supported providers. Keys saved securely with restricted file permissions.
 
-**◈ MCP Binding** *(coming in v0.2)* — Register and manage Model Context Protocol servers (filesystem, GitHub, Slack, custom APIs). Bind them to agents with a keystroke.
+**◈ MCP Binding** — Register and manage Model Context Protocol servers (filesystem, GitHub, Slack, custom APIs). Bound MCPs are persisted with transport-specific targets and basic health metadata.
 
 **⎇ Git Integration** — Built-in git panel showing branch, changed files, recent commits. Quick actions for push, PR, and diff without leaving the TUI.
 
@@ -95,7 +95,9 @@ animyst
 # Inside the console:
 help              # See all commands
 manifest          # Manifest a new agent (or Ctrl+N)
-bind mcp          # Bind a new MCP server (coming in v0.2)
+bind mcp          # Bind a new MCP server
+check mcp github  # Run a basic MCP health check
+inspect mcp github # View stored MCP details
 agents            # List all agents
 awaken scout      # Awaken an agent
 inspect scout     # View agent configuration
@@ -164,9 +166,11 @@ When you awaken an agent, Animyst resumes the latest saved session for that agen
 - `inspect <name>` surfaces history metadata for that agent
 - malformed history files fail safe and start a clean session instead of crashing the app
 
-## Autonomous Refactor Kit
+## Ralph Loop Kit
 
-Use the included Ralph loop wrapper to replay the refactor or run future autonomous passes:
+The previous refactor loop has been cleared. The current Ralph loop now targets the next product milestones: MCP binding, history UX, Textual tests, Ralph hardening, and release cleanup.
+
+Use the included Ralph loop wrapper to run the new phase sequence:
 
 ```bash
 ./ralph.sh run-all
@@ -176,8 +180,10 @@ Useful commands:
 
 ```bash
 ./ralph.sh bootstrap
-./ralph.sh run 03-history
-./ralph.sh resume 03-history
+./ralph.sh status
+./ralph.sh clear-status
+./ralph.sh run 10-mcp-binding
+./ralph.sh resume 20-history-ux
 ./ralph.sh verify
 ```
 
@@ -185,6 +191,7 @@ Supporting files:
 
 - `docs/implementation-plan.md`
 - `docs/automation-approvals.md`
+- `docs/ralph-status.md`
 - `docs/ralph-tasks/`
 - `docs/ralph-prompts/`
 

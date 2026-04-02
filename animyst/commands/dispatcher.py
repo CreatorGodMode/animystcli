@@ -42,10 +42,14 @@ class CommandDispatcher:
             return CommandAction(kind="run_agent", args=[args[0]])
         if name in ("manifest", "new"):
             if args and args[0] == "mcp":
-                return CommandAction(kind="bind_mcp_info")
+                return CommandAction(kind="bind_mcp")
             return CommandAction(kind="manifest_agent")
-        if name == "bind" and args:
-            return CommandAction(kind="bind_mcp_info")
+        if name == "bind" and args and args[0] == "mcp":
+            return CommandAction(kind="bind_mcp")
+        if name == "check" and len(args) > 1 and args[0] == "mcp":
+            return CommandAction(kind="check_mcp", args=[args[1]])
+        if name == "inspect" and len(args) > 1 and args[0] == "mcp":
+            return CommandAction(kind="inspect_mcp", args=[args[1]])
         if name == "inspect" and args:
             return CommandAction(kind="inspect_agent", args=[args[0]])
         if name in ("delete", "banish") and args:
@@ -61,4 +65,3 @@ class CommandDispatcher:
         if name == "ascii":
             return CommandAction(kind="ascii")
         return CommandAction(kind="unknown", payload={"command": raw})
-
