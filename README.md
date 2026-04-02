@@ -11,13 +11,13 @@
 ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝   ╚═╝   ╚══════╝   ╚═╝
 ```
 
-**Breathe Life Into Code**
+**A local-first terminal workspace for building and running AI agents**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-00fff7?style=flat-square&logo=python&logoColor=00fff7)](https://python.org)
 [![Textual](https://img.shields.io/badge/framework-Textual-c026d3?style=flat-square)](https://textual.textualize.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-8b5cf6?style=flat-square)](LICENSE)
 
-*Manifest agents. Bind MCPs. Ship code. All from your terminal.*
+*Manifest agents. Bind MCPs. Resume real conversations. Stay in the terminal.*
 
 [animystlab.com](https://animystlab.com)
 
@@ -27,11 +27,13 @@
 
 ## What is Animyst?
 
-Animyst is an **agent development environment** for the terminal. A TUI for building, configuring, and managing AI agents — not just running them.
+Animyst is a **local-first terminal app for building and running AI agents**.
 
-Unlike tools that act as session managers for existing coding agents, Animyst lets you **define** custom agents from scratch — choosing models, attaching MCP servers, writing incantations (system prompts), and composing multi-agent workflows.
+It gives you a place to define named agents, choose their models, write their incantations, bind MCP servers, store provider settings, and resume conversations without bouncing between scripts, config folders, and separate chat tabs.
 
-Most AI tools run agents — Animyst lets you **build** them.
+Animyst sits in a practical middle ground. It is more structured than ad hoc API calls or one-off prompts, but lighter than a hosted orchestration platform. Your agents and settings live as files under `~/.animyst/`, so the setup stays inspectable, portable, and close to your actual development workflow.
+
+It is still early, and that is part of the honest story here. Animyst is not pretending to be a full remote control plane yet. What it already is, though, is a real terminal workspace for people who want to shape how an agent is configured before they ask it to work.
 
 ```
 ┌──────────────┬────────────────────────────────┬──────────────────┐
@@ -52,23 +54,23 @@ Most AI tools run agents — Animyst lets you **build** them.
 
 ## Features
 
-**⚡ Agent Manifest** — Define agents with custom incantations, model selection, temperature, and token limits. All configs stored as JSON in `~/.animyst/`.
+**⚡ Agent manifesting** — Create named agents with a model, incantation, temperature, token limits, and bound MCPs. Agent definitions are stored as JSON in `~/.animyst/`.
 
-**🔮 Live LLM Streaming** — Real-time streaming chat with Anthropic (Claude), OpenAI (GPT), and Google (Gemini) models. Token usage reported per response.
+**🔮 Live model streaming** — Chat with Anthropic, OpenAI, and Google models from inside the TUI, with streamed responses and per-response usage reporting.
 
-**🕰 Agent Conversation History** — Awakened agents now persist their conversations under `~/.animyst/history/` and resume the latest session automatically.
+**🕰 Persistent conversation history** — Awaken an agent, talk to it, exit, and come back later. Animyst saves session history under `~/.animyst/history/` and resumes the latest conversation automatically.
 
-**🔑 Settings Modal** — Configure API keys for all supported providers. Keys saved securely with restricted file permissions.
+**◈ MCP registration and checks** — Bind MCP servers with command-based or URL-based transports, persist their config, and run basic health checks from the console.
 
-**◈ MCP Binding** — Register and manage Model Context Protocol servers (filesystem, GitHub, Slack, custom APIs). Bound MCPs are persisted with transport-specific targets and basic health metadata, and can be checked from the console.
+**🔑 Provider settings management** — Save API keys and preferences for supported model providers with restricted file permissions.
 
-**⎇ Git Integration** — Built-in git panel showing branch, changed files, recent commits. Quick actions for push, PR, and diff without leaving the TUI.
+**⎇ Git context in view** — See branch status, changed files, and recent commits without leaving the app, so the agent workflow stays connected to the repo you are actually changing.
 
-**◬ Agent Mind** — Real-time feed of all agent operations — manifestations, awakenings, banishments, exports. Your mission control.
+**⌨ Command-first workflow** — Manage agents, MCPs, models, chat sessions, and git actions through a built-in command console with keyboard shortcuts and inspectable output.
 
-**⌨ Command Console** — Full REPL with commands for managing agents, MCPs, models, and git operations. Keyboard shortcuts included.
+**◬ Agent activity visibility** — Follow manifestations, awakenings, exports, checks, and other app activity from the side panels instead of guessing what happened behind the scenes.
 
-**🌆 Cyberpunk Theme** — Fuchsia-violet, electric cyan, and deep purple on void black. Because dev tools should look as good as they work.
+**🌆 A deliberate terminal interface** — Animyst leans into a strong visual identity, but the design is there to support clarity and flow, not to hide the fact that this is still a working developer tool.
 
 ## Install
 
@@ -233,20 +235,25 @@ Animyst uses intentional language to distinguish itself:
 - **[Google GenAI SDK](https://ai.google.dev)** — Gemini model integration
 - **Python 3.10+** — Async-native, type-hinted
 
-## Roadmap
+## Current State
+
+What is already working in the repo today:
 
 - [x] Live agent execution with streaming output
-- [x] Agent conversation history
-- [x] Architecture modularization for storage, services, commands, and UI
-- [x] Ralph loop automation kit for autonomous refactors
-- [x] Basic MCP binding and health checks
-- [ ] Rich MCP runtime integration and deeper health diagnostics
-- [ ] Multi-agent pipeline composer
-- [ ] Telemetry HUD in Agent Mind panel
-- [ ] Plugin system for custom panels
-- [ ] Remote agent deployment
+- [x] Persistent per-agent conversation history
+- [x] Modular architecture for storage, services, commands, and UI
+- [x] Ralph loop automation scaffolding for autonomous implementation work
+- [x] MCP binding with persistence and basic health checks
+
+What we plan to improve next:
+
+- [ ] Richer history UX for browsing past sessions and transcripts
+- [ ] Deeper MCP runtime integration and more useful health diagnostics
+- [ ] Textual integration tests for real command and modal flows
+- [ ] Harder-to-break Ralph automation with stronger resume and PR workflows
+- [ ] Release polish, changelog discipline, and better public-facing assets
 - [ ] Cost tracking per agent run
-- [ ] Import/export agent packs
+- [ ] Import and export for reusable agent packs
 
 ## License
 
@@ -256,6 +263,6 @@ MIT
 
 <div align="center">
 
-*Built with ◬ by [Abhi](https://github.com/CreatorGodMode) — CEO @ [Famished.ai](https://famished.ai) [Animystlab.com](https://animystlab.com)*
+Created by [Abhi](https://github.com/CreatorGodMode) at [Animyst Lab](https://animystlab.com)
 
 </div>
