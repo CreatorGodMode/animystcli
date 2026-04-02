@@ -21,6 +21,9 @@ wheels/
 .venv
 env/
 venv/
+.animyst-dev/
+.codex/
+.pytest_cache/
 .idea/
 .vscode/
 *.swp

@@ -56,6 +56,8 @@ Most AI tools run agents — Animyst lets you **build** them.
 
 **🔮 Live LLM Streaming** — Real-time streaming chat with Anthropic (Claude), OpenAI (GPT), and Google (Gemini) models. Token usage reported per response.
 
+**🕰 Agent Conversation History** — Awakened agents now persist their conversations under `~/.animyst/history/` and resume the latest session automatically.
+
 **🔑 Settings Modal** — Configure API keys for all supported providers. Keys saved securely with restricted file permissions.
 
 **◈ MCP Binding** *(coming in v0.2)* — Register and manage Model Context Protocol servers (filesystem, GitHub, Slack, custom APIs). Bind them to agents with a keystroke.
@@ -118,12 +120,36 @@ status            # System overview
 ```
 ~/.animyst/
 ├── agents.json    # Agent configurations
+├── history/       # Per-agent conversation sessions
 ├── mcps.json      # Bound MCP server registry
 ├── models.json    # Available model definitions
 └── settings.json  # API keys and preferences (0600 perms)
 ```
 
 Animyst uses a file-based config system. Agent configs are portable JSON files that can be version-controlled, shared, and composed into pipelines.
+
+Internally, the app is now organized as a thin Textual shell over dedicated modules for:
+
+- typed domain models in `animyst/domain/`
+- repository-backed persistence in `animyst/storage/`
+- lifecycle and chat orchestration in `animyst/services/`
+- command parsing and dispatch in `animyst/commands/`
+- modal and formatting helpers in `animyst/ui/`
+
+## Autonomous Refactor Kit
+
+Use the included Ralph loop wrapper to replay the refactor or run future autonomous passes:
+
+```bash
+./ralph.sh run-all
+```
+
+Supporting files:
+
+- `docs/implementation-plan.md`
+- `docs/automation-approvals.md`
+- `docs/ralph-tasks/`
+- `docs/ralph-prompts/`
 
 ## Agent Config Format
 
@@ -165,9 +191,9 @@ Animyst uses intentional language to distinguish itself:
 ## Roadmap
 
 - [x] Live agent execution with streaming output
+- [x] Agent conversation history
 - [ ] MCP server connection & health checking
 - [ ] Multi-agent pipeline composer
-- [ ] Agent conversation history
 - [ ] Telemetry HUD in Agent Mind panel
 - [ ] Plugin system for custom panels
 - [ ] Remote agent deployment
