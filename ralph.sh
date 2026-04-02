@@ -9,12 +9,12 @@ RALPH_CMD="${RALPH_CMD:-$RALPH_BIN loop}"
 RUN_PUSH="${RUN_PUSH:-0}"
 
 PHASES=(
-  "00-bootstrap"
-  "01-domain-storage"
-  "02-commands-services"
-  "03-history"
-  "04-ui-split"
-  "05-verify-docs"
+  "00-baseline"
+  "10-mcp-binding"
+  "20-history-ux"
+  "30-textual-tests"
+  "40-ralph-hardening"
+  "50-release-pass"
 )
 
 mkdir -p "${LOG_DIR}"
@@ -51,6 +51,7 @@ run_phase() {
     echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] phase=${phase}"
     echo "task=${task_file}"
     echo "prompt=${prompt_file}"
+    echo "status=running"
   } >> "${log_file}"
 
   if ! command -v "${RALPH_BIN}" >/dev/null 2>&1; then
@@ -60,7 +61,12 @@ run_phase() {
   fi
 
   # shellcheck disable=SC2086
-  ${RALPH_CMD} --task "${task_file}" --prompt-file "${prompt_file}" | tee -a "${log_file}"
+  if ${RALPH_CMD} --task "${task_file}" --prompt-file "${prompt_file}" | tee -a "${log_file}"; then
+    echo "status=completed" >> "${log_file}"
+  else
+    echo "status=failed" >> "${log_file}"
+    exit 1
+  fi
 }
 
 run_all() {
@@ -68,6 +74,45 @@ run_all() {
   for phase in "${PHASES[@]}"; do
     run_phase "${phase}"
   done
+}
+
+phase_status() {
+  local phase="$1"
+  local log_file="${LOG_DIR}/${phase}.log"
+
+  if [[ ! -f "${log_file}" ]]; then
+    echo "pending"
+    return
+  fi
+
+  local status_line
+  status_line="$(grep 'status=' "${log_file}" | tail -n 1 || true)"
+  if [[ -z "${status_line}" ]]; then
+    echo "started"
+  else
+    echo "${status_line#status=}"
+  fi
+}
+
+status() {
+  local phase
+  echo "Ralph loop status"
+  for phase in "${PHASES[@]}"; do
+    printf "  %-20s %s\n" "${phase}" "$(phase_status "${phase}")"
+  done
+}
+
+clear_status() {
+  rm -f "${LOG_DIR}"/*.log
+  echo "Cleared Ralph loop status logs in ${LOG_DIR}"
+}
+
+open_pr() {
+  gh pr create "$@"
+}
+
+merge_pr() {
+  gh pr merge "$@"
 }
 
 verify() {
@@ -85,7 +130,11 @@ Usage:
   ./ralph.sh run <phase>
   ./ralph.sh resume <phase>
   ./ralph.sh run-all
+  ./ralph.sh status
+  ./ralph.sh clear-status
   ./ralph.sh verify
+  ./ralph.sh open-pr <args...>
+  ./ralph.sh merge-pr <args...>
 
 Environment:
   RALPH_BIN   Ralph executable name (default: ralph)
@@ -96,7 +145,7 @@ EOF
 
 case "${1:-}" in
   bootstrap)
-    run_phase "00-bootstrap"
+    run_phase "00-baseline"
     ;;
   run)
     [[ -n "${2:-}" ]] || { usage; exit 1; }
@@ -109,8 +158,22 @@ case "${1:-}" in
   run-all)
     run_all
     ;;
+  status)
+    status
+    ;;
+  clear-status)
+    clear_status
+    ;;
   verify)
     verify
+    ;;
+  open-pr)
+    shift
+    open_pr "$@"
+    ;;
+  merge-pr)
+    shift
+    merge_pr "$@"
     ;;
   *)
     usage

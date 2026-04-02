@@ -1,28 +1,30 @@
-# Animyst Autonomous Refactor Plan
+# Animyst Next Steps Ralph Loop
 
-Animyst is being refactored from a single large Textual app into a modular agent workbench with:
+This loop replaces the completed refactor plan and focuses on the next product and automation milestones for Animyst.
 
-- repository-backed persistence
-- explicit services for agent lifecycle and chat sessions
-- persisted conversation history per agent
-- testable command parsing and storage logic
-- a Ralph loop kit for replayable automation
+## Objectives
+
+- ship real MCP binding and basic health checks
+- deepen conversation history UX beyond simple resume and summary counts
+- add Textual integration coverage around core app flows
+- harden `ralph.sh` for repeatable status, reset, PR, and release workflows
+- finish with a release-quality documentation and packaging pass
 
 ## Phase Order
 
-1. `00-bootstrap`
-2. `01-domain-storage`
-3. `02-commands-services`
-4. `03-history`
-5. `04-ui-split`
-6. `05-verify-docs`
+1. `00-baseline`
+2. `10-mcp-binding`
+3. `20-history-ux`
+4. `30-textual-tests`
+5. `40-ralph-hardening`
+6. `50-release-pass`
 
 ## Success Criteria
 
-- `animyst/app.py` is a thin UI shell
-- agent/session/history logic lives outside the UI layer
-- `awaken <name>` resumes persisted history
-- `/history` reports persisted conversation stats
-- non-UI behavior is covered by automated tests
-- the Ralph task and prompt files are sufficient for an autonomous Codex loop
+- MCP binding is enabled from both the command console and the left-panel action
+- bound MCPs can be persisted, listed, inspected, and checked for basic health
+- agents can browse prior session metadata and start a fresh session intentionally
+- the app has Textual integration tests for key command and modal flows
+- Ralph loop status can be reset and inspected without manual file cleanup
+- docs, versioning, and release notes are aligned with the shipped behavior
 
