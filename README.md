@@ -105,6 +105,12 @@ git status        # Run git commands
 status            # System overview
 ```
 
+To smoke-test in a local sandbox without writing to `~/.animyst`, set a workspace-local config directory:
+
+```bash
+ANIMYST_DIR=.animyst-dev animyst
+```
+
 ## Keyboard Shortcuts
 
 | Key | Action |
@@ -136,12 +142,43 @@ Internally, the app is now organized as a thin Textual shell over dedicated modu
 - command parsing and dispatch in `animyst/commands/`
 - modal and formatting helpers in `animyst/ui/`
 
+Current repo layout:
+
+```text
+animyst/
+├── app.py                 # Textual app shell and event wiring
+├── llm.py                 # Provider streaming and settings access
+├── commands/              # Command parsing and dispatch
+├── domain/                # Agent and conversation models
+├── services/              # Agent lifecycle and chat orchestration
+├── storage/               # Paths, JSON helpers, repositories
+└── ui/                    # Modals and shared formatting
+```
+
+## Conversation History
+
+When you awaken an agent, Animyst resumes the latest saved session for that agent automatically.
+
+- sessions are stored under `~/.animyst/history/`
+- `/history` shows persisted session and turn counts while chat mode is active
+- `inspect <name>` surfaces history metadata for that agent
+- malformed history files fail safe and start a clean session instead of crashing the app
+
 ## Autonomous Refactor Kit
 
 Use the included Ralph loop wrapper to replay the refactor or run future autonomous passes:
 
 ```bash
 ./ralph.sh run-all
+```
+
+Useful commands:
+
+```bash
+./ralph.sh bootstrap
+./ralph.sh run 03-history
+./ralph.sh resume 03-history
+./ralph.sh verify
 ```
 
 Supporting files:
@@ -192,6 +229,8 @@ Animyst uses intentional language to distinguish itself:
 
 - [x] Live agent execution with streaming output
 - [x] Agent conversation history
+- [x] Architecture modularization for storage, services, commands, and UI
+- [x] Ralph loop automation kit for autonomous refactors
 - [ ] MCP server connection & health checking
 - [ ] Multi-agent pipeline composer
 - [ ] Telemetry HUD in Agent Mind panel

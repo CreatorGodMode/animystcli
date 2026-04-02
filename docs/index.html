@@ -661,7 +661,7 @@
       <div class="traffic-light tl-min"></div>
       <div class="traffic-light tl-max"></div>
     </div>
-    <div class="title-bar-text">animyst — python3 -m animyst — 120×40</div>
+    <div class="title-bar-text">animyst — modular agent workbench — 120×40</div>
     <div style="width:50px;"></div>
   </div>
 
@@ -686,7 +686,7 @@
           <div class="tree-item selected"><span class="status-running">●</span> scout</div>
           <div class="tree-item"><span class="status-idle">●</span> coder</div>
           <div class="tree-item"><span class="status-idle">●</span> reviewer</div>
-          <div class="tree-item"><span class="status-error">●</span> deployer</div>
+          <div class="tree-item"><span class="status-idle">●</span> archivist</div>
         </div>
         <div class="tree-section">
           <div class="tree-section-header mcps">▼ ◈ MCPs</div>
@@ -698,7 +698,7 @@
         </div>
         <div class="tree-section">
           <div class="tree-section-header models">▼ ▣ Models</div>
-          <div class="tree-item"><span class="tree-bullet">▸</span> Claude Opus 4.5</div>
+          <div class="tree-item"><span class="tree-bullet">▸</span> Claude Opus 4.6</div>
           <div class="tree-item"><span class="tree-bullet">▸</span> Claude Sonnet 4.5</div>
           <div class="tree-item"><span class="tree-bullet">▸</span> Claude Haiku 4.5</div>
           <div class="tree-item"><span class="tree-bullet">▸</span> GPT-4.1</div>
@@ -707,7 +707,7 @@
       </div>
       <div class="left-actions">
         <button class="action-btn">⚡ Manifest Agent</button>
-        <button class="action-btn">◈ Bind MCP</button>
+        <button class="action-btn">◈ Bind MCP (soon)</button>
         <button class="action-btn">⚙ Settings</button>
       </div>
     </div>
@@ -729,21 +729,21 @@
         <div class="console-line"><span class="welcome-title">&nbsp;&nbsp;<span class="name">ANIMYST</span> <span class="version">v0.1.0 — agent development environment</span></span></div>
         <div class="console-line"><div class="welcome-border"></div></div>
         <div class="console-line">&nbsp;</div>
-        <div class="console-line"><span class="timestamp">14:32:01</span><span class="prompt-marker">◬</span> <span class="cmd-text">manifest scout</span></div>
-        <div class="console-line"><span class="timestamp">14:32:01</span><span class="success" style="font-weight:700;">▶ MANIFESTING</span> <span class="agent-name">scout</span> <span class="agent-output">on claude-sonnet-4-5</span></div>
-        <div class="console-line"><span class="timestamp">14:32:02</span><span class="agent-name">scout</span> <span class="agent-output">Channeling will...</span></div>
-        <div class="console-line"><span class="timestamp">14:32:02</span><span class="agent-name">scout</span> <span class="agent-output">Loading incantation (142 chars)</span></div>
-        <div class="console-line"><span class="timestamp">14:32:03</span><span class="agent-name">scout</span> <span style="color:var(--green);">⚡ Awakened — streaming response</span></div>
-        <div class="console-line"><span class="timestamp">14:32:04</span><span class="agent-name">scout</span> <span class="agent-output">Reading ./src/api/routes.ts</span></div>
-        <div class="console-line"><span class="timestamp">14:32:05</span><span class="agent-name">scout</span> <span class="agent-output">Invoking tool: web_search("auth middleware")</span></div>
-        <div class="console-line"><span class="timestamp">14:32:06</span><span class="agent-name">scout</span> <span class="agent-output">Writing ./src/middleware/auth.ts</span></div>
-        <div class="console-line"><span class="timestamp">14:32:07</span><span class="agent-name">scout</span> <span class="agent-output">Writing ./src/api/routes.ts (modified)</span></div>
+        <div class="console-line"><span class="timestamp">14:32:01</span><span class="prompt-marker">◬</span> <span class="cmd-text">awaken scout</span></div>
+        <div class="console-line"><span class="timestamp">14:32:01</span><span class="success" style="font-weight:700;">▶ AWAKENING</span> <span class="agent-name">scout</span> <span class="agent-output">on claude-sonnet-4-5-20250929</span></div>
+        <div class="console-line"><span class="timestamp">14:32:01</span><span class="agent-output">Chat mode active. Type messages to converse.</span></div>
+        <div class="console-line"><span class="timestamp">14:32:02</span><span style="color:var(--secondary);">Resumed history:</span> <span class="agent-output">8 turn(s), 16 message(s)</span></div>
+        <div class="console-line"><span class="timestamp">14:32:03</span><span class="agent-name">YOU ›</span> <span class="cmd-text">Summarize the auth refactor status.</span></div>
+        <div class="console-line"><span class="timestamp">14:32:04</span><span class="agent-name">scout ›</span> <span class="agent-output">Storage and chat services were extracted from the UI shell.</span></div>
+        <div class="console-line"><span class="timestamp">14:32:05</span><span class="agent-name">scout ›</span> <span class="agent-output">Persisted history is active under ~/.animyst/history/scout.json.</span></div>
+        <div class="console-line"><span class="timestamp">14:32:06</span><span class="agent-name">scout ›</span> <span class="agent-output">13 tests are green and the Ralph loop kit is documented.</span></div>
         <div class="console-line">&nbsp;</div>
-        <div class="console-line"><span class="timestamp">14:32:12</span><span class="prompt-marker">◬</span> <span class="cmd-text">inspect scout</span></div>
+        <div class="console-line"><span class="timestamp">14:32:10</span><span class="prompt-marker">◬</span> <span class="cmd-text">inspect scout</span></div>
+        <div class="console-line"><span class="timestamp">14:32:11</span><span style="color:var(--secondary);">History:</span> <span class="agent-output">8 turns across 2 sessions, updated moments ago</span></div>
       </div>
       <div class="input-bar">
-        <span class="input-prompt">ANIMYST ›</span>
-        <span class="input-text">export scout</span><span class="cursor-blink"></span>
+        <span class="input-prompt">SCOUT ›</span>
+        <span class="input-text">/history</span><span class="cursor-blink"></span>
       </div>
     </div>
 
@@ -754,12 +754,12 @@
         <div class="panel-title pt-purple">◬ GIT</div>
         <div class="git-content">
           <div class="git-branch">⎇ main</div>
-          <div class="git-changed">3 file(s) changed</div>
+          <div class="git-changed">clean working tree</div>
           <div class="git-sep">────────────────────────────</div>
           <div class="git-label">RECENT COMMITS</div>
-          <div><span class="commit-hash">a3f2d1c</span><span class="commit-msg">manifest scout agent</span></div>
-          <div><span class="commit-hash">b1c4e8a</span><span class="commit-msg">bind github mcp</span></div>
-          <div><span class="commit-hash">f7d2a3b</span><span class="commit-msg">init animyst project</span></div>
+          <div><span class="commit-hash">8576145</span><span class="commit-msg">add Ralph loop automation and docs</span></div>
+          <div><span class="commit-hash">5d8f881</span><span class="commit-msg">add coverage for repositories and chat services</span></div>
+          <div><span class="commit-hash">728bd32</span><span class="commit-msg">extract modular services and persistence layers</span></div>
           <div><span class="commit-hash">c9e1f4d</span><span class="commit-msg">configure theme layer</span></div>
           <div><span class="commit-hash">d4b8c2e</span><span class="commit-msg">setup pyproject.toml</span></div>
         </div>
@@ -783,34 +783,34 @@
 
           <div class="mind-agent-label">SCOUT</div>
           <div class="mind-status-live">● AWAKENED</div>
-          <div class="mind-model-label">claude-sonnet-4-5 • streaming</div>
+          <div class="mind-model-label">claude-sonnet-4-5-20250929 • resumed session</div>
 
           <div class="telemetry-grid">
             <div class="gauge">
               <div class="gauge-header">
                 <span class="gauge-label">TOKENS IN</span>
-                <span class="gauge-value cyan">2,847</span>
+                <span class="gauge-value cyan">3,912</span>
               </div>
               <div class="gauge-bar"><div class="gauge-fill cyan-fill" style="width:62%;"></div></div>
             </div>
             <div class="gauge">
               <div class="gauge-header">
                 <span class="gauge-label">TOKENS OUT</span>
-                <span class="gauge-value primary">1,204</span>
+                <span class="gauge-value primary">1,486</span>
               </div>
               <div class="gauge-bar"><div class="gauge-fill primary-fill" style="width:38%;"></div></div>
             </div>
             <div class="gauge">
               <div class="gauge-header">
                 <span class="gauge-label">COST</span>
-                <span class="gauge-value amber">$0.024</span>
+                <span class="gauge-value amber">$0.031</span>
               </div>
               <div class="gauge-bar"><div class="gauge-fill amber-fill" style="width:12%;"></div></div>
             </div>
             <div class="gauge">
               <div class="gauge-header">
                 <span class="gauge-label">CONTEXT</span>
-                <span class="gauge-value green">18%</span>
+                <span class="gauge-value green">24%</span>
               </div>
               <div class="gauge-bar"><div class="gauge-fill green-fill" style="width:18%;"></div></div>
             </div>
@@ -820,23 +820,23 @@
             <div class="synapse-title">SYNAPSES</div>
             <div class="synapse-item">
               <span class="synapse-dot s-cyan"></span>
-              <span class="synapse-tool">read_file</span>
-              <span class="synapse-detail">routes.ts</span>
+              <span class="synapse-tool">history_repo</span>
+              <span class="synapse-detail">resume scout session</span>
             </div>
             <div class="synapse-item">
               <span class="synapse-dot s-primary"></span>
-              <span class="synapse-tool">web_search</span>
-              <span class="synapse-detail">auth middleware</span>
+              <span class="synapse-tool">chat_service</span>
+              <span class="synapse-detail">append assistant turn</span>
             </div>
             <div class="synapse-item">
               <span class="synapse-dot s-purple"></span>
-              <span class="synapse-tool">write_file</span>
-              <span class="synapse-detail">auth.ts</span>
+              <span class="synapse-tool">command_dispatcher</span>
+              <span class="synapse-detail">inspect scout</span>
             </div>
             <div class="synapse-item">
               <span class="synapse-dot s-amber"></span>
-              <span class="synapse-tool">edit_file</span>
-              <span class="synapse-detail">routes.ts</span>
+              <span class="synapse-tool">ralph.sh</span>
+              <span class="synapse-detail">verify</span>
             </div>
           </div>
         </div>
@@ -848,7 +848,6 @@
   <!-- Footer -->
   <div class="app-footer">
     <span class="footer-key">^N</span><span class="footer-label">Manifest</span>
-    <span class="footer-key">^M</span><span class="footer-label">Bind MCP</span>
     <span class="footer-key">^G</span><span class="footer-label">Git</span>
     <span class="footer-key">^R</span><span class="footer-label">Refresh</span>
     <span class="footer-key">^L</span><span class="footer-label">Clear</span>

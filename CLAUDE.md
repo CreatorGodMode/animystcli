@@ -49,8 +49,12 @@ ANIMYST uses ritualistic language — never use generic terms in UI, logs, or co
 ### Data Storage
 All config lives in `~/.animyst/`:
 - `agents.json` — agent configurations
+- `history/` — per-agent conversation sessions
 - `mcps.json` — bound MCP server registry
 - `models.json` — available model definitions
+- `settings.json` — API keys and preferences
+
+For sandboxed development and smoke tests, `ANIMYST_DIR` may override the config root.
 
 ### Repo Structure
 ```
@@ -58,14 +62,25 @@ animystcli/
 ├── animyst/
 │   ├── __init__.py        # Package init, version string
 │   ├── __main__.py        # CLI entry (python -m animyst)
-│   ├── app.py             # Main TUI app — all widgets, modals, commands
+│   ├── app.py             # Textual app shell and event wiring
+│   ├── commands/          # Command parsing and dispatch
+│   ├── domain/            # Agent and conversation models
+│   ├── services/          # Agent lifecycle and chat orchestration
+│   ├── storage/           # Paths, JSON helpers, repositories
+│   ├── ui/                # Modals and formatting helpers
 │   └── cyberpunk.tcss     # Textual CSS theme
 ├── docs/
-│   └── index.html         # Interactive HTML preview for GitHub Pages
+│   ├── index.html         # Interactive HTML preview for GitHub Pages
+│   ├── implementation-plan.md
+│   ├── automation-approvals.md
+│   ├── ralph-prompts/
+│   └── ralph-tasks/
 ├── .gitignore
 ├── CLAUDE.md              # This file
 ├── LICENSE                # MIT
 ├── pyproject.toml
+├── ralph.sh               # Autonomous loop wrapper
+├── tests/                 # Non-UI test coverage
 └── README.md
 ```
 
@@ -89,6 +104,7 @@ animystcli/
 - `animyst bind <mcp>` — register MCP server
 - `animyst inspect <name>` — view agent details
 - `animyst export <name>` — export config as JSON
+- `/history` in chat mode — show persisted history stats for the active agent
 
 ## Code Style
 - Python type hints throughout
@@ -98,8 +114,10 @@ animystcli/
 - Always run tests after changes
 
 ## Key Patterns
-- `load_json()` / `save_json()` for all file I/O
+- repositories own persistence instead of the UI layer
+- `ChatService` resumes and persists conversation sessions
+- `CommandDispatcher` normalizes console commands before the UI handles them
 - `log_console()`, `log_mind()`, `log_git()` for panel output
-- `@work(thread=True)` for blocking operations (git, agent simulation)
+- `@work(thread=True)` for blocking operations (git, streaming)
 - `call_from_thread()` for UI updates from worker threads
-- Modal screens for agent manifest, MCP bind, agent inspect
+- modal screens live in `animyst/ui/modals.py`
