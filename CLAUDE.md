@@ -102,7 +102,9 @@ animystcli/
 - `animyst manifest <name>` — create/run agent
 - `animyst awaken <name>` — run agent
 - `animyst banish <name>` — delete agent
-- `animyst bind <mcp>` — register MCP server
+- `animyst bind mcp` — register an MCP server
+- `animyst check mcp <name>` — run a basic health check
+- `animyst inspect mcp <name>` — inspect a bound MCP
 - `animyst inspect <name>` — view agent details
 - `animyst export <name>` — export config as JSON
 - `/history` in chat mode — show persisted history stats for the active agent

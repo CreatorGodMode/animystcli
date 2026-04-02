@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "animyst"
-version = "0.1.0"
-description = "ANIMYST — Breathe Life Into Code. Agent Development Environment for the Terminal."
+version = "0.1.1"
+description = "ANIMYST — A local-first terminal workspace for building and running AI agents."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"

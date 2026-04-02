@@ -34,11 +34,11 @@ def test_agent_repository_round_trip(tmp_path):
 
 def test_settings_repository_writes_restricted_permissions(tmp_path):
     repository = SettingsRepository(tmp_path / "settings.json")
-    repository.save({"api_keys": {"openai": "sk-test"}})
+    repository.save({"api_keys": {"openai": "test-openai-key"}})
 
     loaded = repository.load()
 
-    assert loaded["api_keys"]["openai"] == "sk-test"
+    assert loaded["api_keys"]["openai"] == "test-openai-key"
     assert oct((tmp_path / "settings.json").stat().st_mode & 0o777) == "0o600"
 
 

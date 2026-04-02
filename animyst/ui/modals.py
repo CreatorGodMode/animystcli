@@ -206,7 +206,7 @@ class SettingsModal(ModalScreen[None]):
             yield Static("[bold #c026d3]◬ SETTINGS ◬[/]", id="modal-title")
             yield Label("[#504d78]ANTHROPIC API KEY[/]", classes="modal-label")
             yield Input(
-                placeholder="sk-ant-...",
+                placeholder="Paste Anthropic API key",
                 value=keys.get("anthropic", ""),
                 password=True,
                 id="key-anthropic",
@@ -214,7 +214,7 @@ class SettingsModal(ModalScreen[None]):
             )
             yield Label("[#504d78]OPENAI API KEY[/]", classes="modal-label")
             yield Input(
-                placeholder="sk-...",
+                placeholder="Paste OpenAI API key",
                 value=keys.get("openai", ""),
                 password=True,
                 id="key-openai",
@@ -222,7 +222,7 @@ class SettingsModal(ModalScreen[None]):
             )
             yield Label("[#504d78]GOOGLE API KEY[/]", classes="modal-label")
             yield Input(
-                placeholder="AI...",
+                placeholder="Paste Google API key",
                 value=keys.get("google", ""),
                 password=True,
                 id="key-google",
