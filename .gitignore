@@ -18,6 +18,7 @@ wheels/
 *.egg-info/
 *.egg
 .env
+.envrc
 .venv
 env/
 venv/
