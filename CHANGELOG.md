@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2026-05-14
+
+### Changed
+
+- Package short description and embedded long description (README) updated to match the GitHub repo's current branding — drops "Powered by Claude Code" from the tagline and "via Claude Code" from the short description. Technical references to Claude Code in install requirements, architecture, and safety sections are unchanged.
+
+### Notes
+
+- Pure metadata patch over v0.2.0. No code or dependency changes; runtime behavior is identical.
+
 ## [0.2.0] - 2026-05-14
 
 ANIMYST pivots from a chat-agent TUI to a CLI for autonomous build rites driven by the Ralph protocol. Describe what you want, walk away, come back to a working repo.
