@@ -17,7 +17,7 @@
 [![Textual](https://img.shields.io/badge/tracker-Textual-c026d3?style=flat-square)](https://textual.textualize.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-8b5cf6?style=flat-square)](LICENSE)
 
-*Autonomous build rites. Powered by Claude Code. Local-first. Open source.*
+*Autonomous build rites. Local-first. Open source.*
 
 [animystlab.com](https://animystlab.com)
 
