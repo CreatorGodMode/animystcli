@@ -12,7 +12,7 @@ A local-first CLI that turns plain-English descriptions into working code. The u
 
 Each build is a **rite**. A rite is: one description → one directory → one autonomous loop → one shippable commit log.
 
-## Language System (Manifestation Metaphor)
+## Language System (Ritual Vocabulary)
 ANIMYST uses ritualistic language deliberately — never use generic terms in user-facing output or docs:
 
 | Generic        | ANIMYST          |
@@ -110,5 +110,5 @@ animystcli/
 - When adding/changing the prompt template, validate against the reference Ralph specs the user maintains in sibling repos (e.g. `svarna-llm-ralph/ralph-prompt.md`) — those are the empirical ground truth for what works
 
 ## Testing
-- `tests/` is currently empty. v0.2 ships with extensive manual validation (smoke + safety probe + 6-iter convergence run, documented in conversation history) but no automated pytest suite yet.
+- `tests/` is currently empty. v0.2 ships with extensive manual validation (a single-iteration smoke test, an adversarial safety probe of the deny rules, and a 6-iteration end-to-end convergence run) but no automated pytest suite yet.
 - When adding tests, target the pure parts first: `_slugify()`, registry CRUD, prompt template rendering. The loop/tmux/claude integration paths are harder to unit-test.
