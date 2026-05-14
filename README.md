@@ -11,13 +11,13 @@
 ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝   ╚═╝   ╚══════╝   ╚═╝
 ```
 
-**A local-first terminal workspace for building and running AI agents**
+**Describe what you want. Walk away. Come back to a working repo.**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-00fff7?style=flat-square&logo=python&logoColor=00fff7)](https://python.org)
-[![Textual](https://img.shields.io/badge/framework-Textual-c026d3?style=flat-square)](https://textual.textualize.io)
+[![Textual](https://img.shields.io/badge/tracker-Textual-c026d3?style=flat-square)](https://textual.textualize.io)
 [![License: MIT](https://img.shields.io/badge/license-MIT-8b5cf6?style=flat-square)](LICENSE)
 
-*Manifest agents. Bind MCPs. Resume real conversations. Stay in the terminal.*
+*Autonomous build rites. Powered by Claude Code. Local-first. Open source.*
 
 [animystlab.com](https://animystlab.com)
 
@@ -25,235 +25,174 @@
 
 ---
 
-## What is Animyst?
+## What is ANIMYST?
 
-Animyst is a **local-first terminal app for building and running AI agents**.
+ANIMYST is a local-first CLI that turns plain-English descriptions into working code.
 
-It gives you a place to define named agents, choose their models, write their incantations, bind MCP servers, store provider settings, and resume conversations without bouncing between scripts, config folders, and separate chat tabs.
+You describe what you want to build. ANIMYST scaffolds the repository, runs Claude Code in a multi-iteration loop until the build is done, and tracks state across tmux + git + filesystem so you can walk away and come back.
 
-Animyst sits in a practical middle ground. It is more structured than ad hoc API calls or one-off prompts, but lighter than a hosted orchestration platform. Your agents and settings live as files under `~/.animyst/`, so the setup stays inspectable, portable, and close to your actual development workflow.
+Each build is called a **rite**. A rite is one description → one worktree → one autonomous loop → one shippable commit log.
 
-It is still early, and that is part of the honest story here. Animyst is not pretending to be a full remote control plane yet. What it already is, though, is a real terminal workspace for people who want to shape how an agent is configured before they ask it to work.
+ANIMYST sits in a deliberate position. It is **not** a hosted AI coding tool — there is no proprietary backend, no telemetry, no per-token billing. It runs locally, uses your existing Claude Code subscription, and produces a real git repository you can push anywhere. It is built for people who want to ship without typing the code themselves.
 
 ```
-┌──────────────┬────────────────────────────────┬──────────────────┐
-│  REGISTRY    │        CONSOLE                 │   GIT            │
-│              │                                │                  │
-│ ⚡ Agents    │  animyst › manifest scout       │  ⎇ main          │
-│  ● scout     │  [scout] Channeling will...    │  2 files changed │
-│  ● coder     │  [scout] Loading incantation   │                  │
-│ ◈ MCPs       │  [scout] ⚡ Awakened            │  a3f2d manifest  │
-│  ▸ GitHub    │                                │  b1c4e bind mcp  │
-│  ▸ Filesystem│                                ├──────────────────┤
-│ ▣ Models     │                                │   AGENT MIND     │
-│  ▸ Sonnet 4.5│                                │                  │
-│  ▸ Opus 4.5  │                                │  AWAKEN scout    │
-│              │  animyst › _                   │  MANIFEST coder  │
-└──────────────┴────────────────────────────────┴──────────────────┘
+$ animyst summon "Landing page for GroundFloor Coffee. Warm orange #E8743B.
+> Three tiers: Single Origin $24/mo, Roaster's Choice $32/mo, Curator $48/mo.
+> Hero: 'Coffee from people who care'. Email signup. Mobile-first."
+
+◬ Channeling intent for: landing-page-groundfloor-coffee
+  → Working directory: ./landing-page-groundfloor-coffee/
+  → tmux session:      animyst-landing-page-groundfloor-coffee
+  → Awakened. Track with `animyst` or `animyst attach`.
+
+# 25 minutes later …
+
+$ animyst
+◬ ANIMYST — active rites
+
+  landing-page-groundfloor-coffee
+    ⊘ dormant     phase 7/7    25m elapsed
+    task: Wrote a README and marked the rite complete
+    last: ae79539 docs: add README and mark rite complete
 ```
 
-## Features
+## How it works
 
-**⚡ Agent manifesting** — Create named agents with a model, incantation, temperature, token limits, and bound MCPs. Agent definitions are stored as JSON in `~/.animyst/`.
-
-**🔮 Live model streaming** — Chat with Anthropic, OpenAI, and Google models from inside the TUI, with streamed responses and per-response usage reporting.
-
-**🕰 Persistent conversation history** — Awaken an agent, talk to it, exit, and come back later. Animyst saves session history under `~/.animyst/history/` and resumes the latest conversation automatically.
-
-**◈ MCP registration and checks** — Bind MCP servers with command-based or URL-based transports, persist their config, and run basic health checks from the console.
-
-**🔑 Provider settings management** — Save API keys and preferences for supported model providers with restricted file permissions.
-
-**⎇ Git context in view** — See branch status, changed files, and recent commits without leaving the app, so the agent workflow stays connected to the repo you are actually changing.
-
-**⌨ Command-first workflow** — Manage agents, MCPs, models, chat sessions, and git actions through a built-in command console with keyboard shortcuts and inspectable output.
-
-**◬ Agent activity visibility** — Follow manifestations, awakenings, exports, checks, and other app activity from the side panels instead of guessing what happened behind the scenes.
-
-**🌆 A deliberate terminal interface** — Animyst leans into a strong visual identity, but the design is there to support clarity and flow, not to hide the fact that this is still a working developer tool.
+1. **Summon.** `animyst summon "<description>"` creates a directory, runs `git init`, drops a vetted `RITE.md` (the autonomous-build prompt) and `.claude/settings.json` (the safety deny rules), and starts a build loop in a detached tmux session.
+2. **Walk away.** Each loop iteration: read context, pick the next single coherent task, implement it, verify the build passes, commit explicit paths with a conventional commit message, append a plain-English summary to `WHAT_CHANGED.md`. Loops until done — or until the agent surfaces a blocker that needs you.
+3. **Come back.** `animyst` prints a status board. `animyst watch` opens a Textual tracker. `animyst attach <slug>` drops you into the tmux session to peek at live output.
+4. **Iterate.** `cd` into the rite directory and run `animyst summon "<change request>"` again. The prompt detects an existing `WHAT_CHANGED.md` and treats the new description as a change to the existing repo, not a fresh build.
 
 ## Install
 
 ```bash
 pip install animyst
-animyst
 ```
 
-Or install from source:
+Or from source:
 
 ```bash
 git clone https://github.com/CreatorGodMode/animystcli.git
 cd animystcli
 pip install -e .
-animyst
 ```
 
-## Quick Start
+Requirements:
+
+- **Python 3.10+**
+- **[Claude Code](https://claude.com/claude-code)** installed and signed in (`claude --version` should work). ANIMYST invokes `claude -p` in headless mode for each loop iteration, so your existing subscription is the auth.
+- **tmux** — built-in on macOS; `apt install tmux` / `brew install tmux` elsewhere.
+- **git**
+
+## Quickstart
 
 ```bash
-# Launch animyst
-animyst
+$ cd ~/Code
 
-# Inside the console:
-help              # See all commands
-manifest          # Manifest a new agent (or Ctrl+N)
-bind mcp          # Bind a new MCP server
-check mcp github  # Run a basic MCP health check
-inspect mcp github # View stored MCP details
-agents            # List all agents
-awaken scout      # Awaken an agent
-inspect scout     # View agent configuration
-banish scout      # Remove an agent
-export scout      # Export agent config as JSON
-git status        # Run git commands
-status            # System overview
+$ animyst summon "Single-page portfolio site for a freelance illustrator.
+> Earth-tone palette (#3a2e1c base, #d4a574 accent). Hero with name and
+> tagline. Gallery grid of project cards (placeholder for 8). About blurb.
+> Contact email form. Mobile-first."
+
+$ animyst                       # status at a glance
+$ animyst watch                 # Textual live tracker
+$ animyst attach <slug>         # tmux attach into the running session
+$ animyst stop <slug>           # kill the session (keeps the directory)
+$ animyst banish <slug>         # delete the directory + registry entry
 ```
 
-To smoke-test in a local sandbox without writing to `~/.animyst`, set a workspace-local config directory:
+To iterate on an existing rite:
 
 ```bash
-ANIMYST_DIR=.animyst-dev animyst
+$ cd ./single-page-portfolio-freelance-illustrator
+$ animyst summon "Make the accent warmer, more terracotta (#c46a3b).
+> Add a 'currently booking' callout next to the contact form."
 ```
 
-## Keyboard Shortcuts
+## Commands
 
-| Key | Action |
-|-----|--------|
-| `Ctrl+N` | Manifest new agent |
-| `Ctrl+G` | Git status |
-| `Ctrl+R` | Refresh all panels |
-| `Ctrl+L` | Clear console |
-| `Ctrl+Q` | Quit |
+| Command | What it does |
+|---|---|
+| `animyst summon "<description>"` | Create a new rite, or iterate from inside an existing one |
+| `animyst` | Status board for all rites |
+| `animyst status [<slug>]` | Same, or detailed view for one rite |
+| `animyst attach [<slug>]` | tmux attach to a rite's session (defaults to the only live one) |
+| `animyst watch` | Open the Textual tracker |
+| `animyst stop [<slug>]` | Kill a rite's tmux session (keeps the directory) |
+| `animyst banish <slug>` | Delete a rite directory and registry entry (confirmation required) |
+
+Use `--cap N` with `summon` to change the max loop iterations (default 15).
 
 ## Architecture
 
 ```
-~/.animyst/
-├── agents.json    # Agent configurations
-├── history/       # Per-agent conversation sessions
-├── mcps.json      # Bound MCP server registry
-├── models.json    # Available model definitions
-└── settings.json  # API keys and preferences (0600 perms)
+~/.animyst/rites.json               global rite registry
+
+<rite-directory>/                   one per rite
+├── RITE.md                         the prompt (auto-generated from your description)
+├── WHAT_CHANGED.md                 plain-English log, updated each iteration
+├── .animyst/
+│   ├── rite.json                   current state (phase, status, blocker)
+│   └── logs/iter-NN.log            per-iteration claude output
+├── .claude/settings.json           deny rules — the safety wall
+└── <the actual project files>      what you wanted built
 ```
 
-Animyst uses a file-based config system. Agent configs are portable JSON files that can be version-controlled, shared, and composed into pipelines.
+Everything is local. No telemetry, no hosted runs, no proprietary backend. The rite directory is a normal git repository — push to GitHub, deploy on Vercel, do whatever you would with any other project.
 
-Internally, the app is now organized as a thin Textual shell over dedicated modules for:
+The Textual tracker (`animyst watch`) reads the registry + tmux state + each rite's `rite.json` + `WHAT_CHANGED.md` to render a live cross-rite view. No daemon. No IPC. Just filesystem + tmux + git.
 
-- typed domain models in `animyst/domain/`
-- repository-backed persistence in `animyst/storage/`
-- lifecycle and chat orchestration in `animyst/services/`
-- command parsing and dispatch in `animyst/commands/`
-- modal and formatting helpers in `animyst/ui/`
+## The Ralph protocol, productized
 
-Current repo layout:
+ANIMYST is a productized version of the Ralph protocol — a battle-tested pattern for autonomous, multi-iteration agent builds where a hand-authored 250-650 line spec encodes mission, file allow/deny lists, commit cycle, retry budget, failure protocol, and completion criteria. The pattern works. The bottleneck for adoption was authoring the spec.
 
-```text
-animyst/
-├── app.py                 # Textual app shell and event wiring
-├── llm.py                 # Provider streaming and settings access
-├── commands/              # Command parsing and dispatch
-├── domain/                # Agent and conversation models
-├── services/              # Agent lifecycle and chat orchestration
-├── storage/               # Paths, JSON helpers, repositories
-└── ui/                    # Modals and shared formatting
-```
+ANIMYST collapses that. It ships a vetted, parameterized prompt template and static deny rules. Your description fills in the mission. The rest is the same Ralph protocol that has shipped real work in production repositories, now packaged behind one command.
 
-## Conversation History
+## Safety
 
-When you awaken an agent, Animyst resumes the latest saved session for that agent automatically.
+Every rite gets a `.claude/settings.json` that denies, at the Claude Code permission layer:
 
-- sessions are stored under `~/.animyst/history/`
-- `/history` shows persisted session and turn counts while chat mode is active
-- `inspect <name>` surfaces history metadata for that agent
-- malformed history files fail safe and start a clean session instead of crashing the app
+- `git push`, `gh pr create`, all remote git operations
+- `git add -A`, `git add .`, `git add --all` (forces explicit-path staging)
+- `git commit --amend`, `git reset --hard`, `git rebase`, `git checkout <branch>`
+- Global package installs (`npm i -g`, `pip install --user`, `yarn global`)
+- Reads/writes of `.env*` and any file named `*secrets*`
+- Piped-shell installs (`curl … | sh`, `wget … | bash`)
+- `sudo`, `chmod 777`, `rm -rf /…`
 
-## Ralph Loop Kit
+Validated by an adversarial probe: eight forbidden operations attempted in isolation, eight blocked, zero slipped through.
 
-The previous refactor loop has been cleared. The current Ralph loop now targets the next product milestones: MCP binding, history UX, Textual tests, Ralph hardening, and release cleanup.
-Phase `10-mcp-binding` is already implemented in the repo, so the next active milestone is session history UX.
-
-Use the included Ralph loop wrapper to run the new phase sequence:
-
-```bash
-./ralph.sh run-all
-```
-
-Useful commands:
-
-```bash
-./ralph.sh bootstrap
-./ralph.sh status
-./ralph.sh clear-status
-./ralph.sh run 10-mcp-binding
-./ralph.sh resume 20-history-ux
-./ralph.sh verify
-```
-
-Supporting files:
-
-- `docs/implementation-plan.md`
-- `docs/automation-approvals.md`
-- `docs/ralph-status.md`
-- `docs/ralph-tasks/`
-- `docs/ralph-prompts/`
-
-## Agent Config Format
-
-```json
-{
-  "name": "scout",
-  "model": "claude-sonnet-4-5-20250929",
-  "incantation": "You are a research agent that finds and summarizes information.",
-  "mcps": ["web-search", "filesystem"],
-  "temperature": 0.7,
-  "max_tokens": 4096,
-  "status": "dormant"
-}
-```
+These rules are the hard wall. The prompt template ALSO repeats them as guidance, but the harness enforces independently — belt and suspenders.
 
 ## Language
 
-Animyst uses intentional language to distinguish itself:
+ANIMYST uses ritualistic terminology deliberately to distinguish itself:
 
-| Generic | Animyst |
-|---------|---------|
-| Create agent | **Manifest** agent |
+| Generic | ANIMYST |
+|---|---|
+| Create | **Summon** |
 | Running | **Awakened** |
-| Idle | **Dormant** |
+| Completed | **Dormant** |
+| Blocked | **⚠ Blocked** |
 | Delete | **Banish** |
-| System prompt | **Incantation** |
-| Register MCP | **Bind** MCP |
+| Build | **Rite** |
 
-## Tech Stack
+## Tech stack
 
-- **[Textual](https://textual.textualize.io)** — Python TUI framework with CSS-like styling
-- **[Rich](https://rich.readthedocs.io)** — Terminal formatting and markup
-- **[GitPython](https://gitpython.readthedocs.io)** — Git integration
-- **[Anthropic SDK](https://docs.anthropic.com)** — Claude model integration
-- **[OpenAI SDK](https://platform.openai.com/docs)** — GPT model integration
-- **[Google GenAI SDK](https://ai.google.dev)** — Gemini model integration
 - **Python 3.10+** — Async-native, type-hinted
+- **[Textual](https://textual.textualize.io)** — TUI tracker
+- **[Rich](https://rich.readthedocs.io)** — Terminal formatting
+- **tmux** — Long-running session manager for unattended loops
+- **[Claude Code](https://claude.com/claude-code)** — Executor agent (subscription auth, no API tokens charged)
+- **git** — State and history surface
 
-## Current State
+## What's next
 
-What is already working in the repo today:
-
-- [x] Live agent execution with streaming output
-- [x] Persistent per-agent conversation history
-- [x] Modular architecture for storage, services, commands, and UI
-- [x] Ralph loop automation scaffolding for autonomous implementation work
-- [x] MCP binding with persistence and basic health checks
-
-What we plan to improve next:
-
-- [ ] Richer history UX for browsing past sessions and transcripts
-- [ ] Deeper MCP runtime integration and more useful health diagnostics
-- [ ] Textual integration tests for real command and modal flows
-- [ ] Harder-to-break Ralph automation with stronger resume and PR workflows
-- [ ] Release polish, changelog discipline, and better public-facing assets
-- [ ] Cost tracking per agent run
-- [ ] Import and export for reusable agent packs
+- **Codex CLI** as an alternative agent adapter (parity with `claude -p`)
+- **`animyst deploy`** — one-command push to GitHub + Vercel for the standard archetypes
+- **More archetypes** beyond Next.js: Python scripts, Expo apps, FastAPI services
+- **Pause-and-ask flow** — agent surfaces blockers as plain-English questions, user resolves via `animyst ask`
+- **Hardened iteration mode** — better diffs for change-request-style re-runs
 
 ## License
 
