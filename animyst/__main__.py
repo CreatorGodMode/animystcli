@@ -1,6 +1,6 @@
 """ANIMYST CLI entry point."""
 
-from animyst.app import main
+from animyst.cli import main
 
 if __name__ == "__main__":
     main()

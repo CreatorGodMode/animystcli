@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)",
+      "Bash(git show*)", "Bash(git rev-parse*)", "Bash(git branch*)",
+      "Bash(git ls-files*)", "Bash(git add *)", "Bash(git commit*)",
+      "Bash(git checkout -- *)", "Bash(git init*)",
+      "Bash(npm *)", "Bash(npx *)", "Bash(node *)",
+      "Bash(ls *)", "Bash(cat *)", "Bash(head *)", "Bash(tail *)",
+      "Bash(grep *)", "Bash(find *)", "Bash(wc *)", "Bash(echo *)",
+      "Bash(mkdir *)", "Bash(touch *)", "Bash(mv *)",
+      "Read(*)", "Write(*)", "Edit(*)"
+    ],
+    "deny": [
+      "Bash(git push*)",
+      "Bash(gh pr *)", "Bash(gh repo *)", "Bash(gh auth *)",
+      "Bash(git add -A*)", "Bash(git add .*)", "Bash(git add --all*)",
+      "Bash(git commit --amend*)",
+      "Bash(git reset --hard*)", "Bash(git rebase*)",
+      "Bash(git checkout *)",
+      "Bash(rm -rf /*)", "Bash(sudo *)", "Bash(chmod 777*)",
+      "Bash(curl * | sh*)", "Bash(curl * | bash*)",
+      "Bash(wget * | sh*)", "Bash(wget * | bash*)",
+      "Bash(npm install -g*)", "Bash(npm i -g*)", "Bash(yarn global*)",
+      "Bash(pip install --user*)",
+      "Read(.env*)", "Read(**/.env*)", "Read(*secrets*)",
+      "Write(.env*)", "Write(**/.env*)",
+      "Edit(.env*)", "Edit(**/.env*)"
+    ]
+  }
+}

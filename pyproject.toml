@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "animyst"
-version = "0.1.1"
-description = "ANIMYST — A local-first terminal workspace for building and running AI agents."
+version = "0.2.0"
+description = "ANIMYST — Describe what you want, walk away, come back to a working repo. Autonomous build rites via Claude Code."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
     { name = "Abhi", email = "abhi@famished.ai" },
 ]
-keywords = ["tui", "agents", "mcp", "cyberpunk", "terminal", "ai", "animyst"]
+keywords = ["tui", "agents", "autonomous", "claude-code", "ralph-loop", "cli", "rite", "animyst"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -36,7 +36,7 @@ dependencies = [
 ]
 
 [project.scripts]
-animyst = "animyst.app:main"
+animyst = "animyst.cli:main"
 
 [project.urls]
 Homepage = "https://animystlab.com"
@@ -45,3 +45,8 @@ Issues = "https://github.com/CreatorGodMode/animystcli/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["animyst"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"animyst/prompt_template.md" = "animyst/prompt_template.md"
+"animyst/settings_template.json" = "animyst/settings_template.json"
+"animyst/loop.sh" = "animyst/loop.sh"
