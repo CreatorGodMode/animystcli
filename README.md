@@ -21,6 +21,8 @@
 
 [animystlab.com](https://animystlab.com)
 
+<img src="https://d8j0ntlcm91z4.cloudfront.net/user_39E5GbzhIN3dcMfr5ym8NbYhVVi/hf_20260514_214555_dc821fdc-b0f9-47c7-a299-4df6e0472a05.png" alt="ANIMYST CLI project identity card" width="100%" />
+
 </div>
 
 ---
