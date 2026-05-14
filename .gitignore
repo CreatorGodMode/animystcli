@@ -31,3 +31,24 @@ venv/
 *.swo
 *~
 .DS_Store
+
+# iCloud sync conflict pattern — files renamed "<name> 2.<ext>" etc.
+# Repeats every time iCloud reconciles a delete; never legitimate here.
+* 2.py
+* 2.md
+* 2.sh
+* 2.json
+* 3.py
+* 3.md
+* 3.sh
+* 3.json
+
+# v0.1-era files iCloud keeps resurrecting from cache after deletion.
+# Were removed in the v0.2 pivot; do not let them come back into the tree.
+/ralph.sh
+/screenshot.svg
+/docs/index.html
+/docs/automation-approvals.md
+/docs/2026-04-27-autodev-platform-spec.md
+/docs/ralph-prompts/
+/docs/ralph-tasks/
