@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "animyst"
 version = "0.2.0"
-description = "ANIMYST — Describe what you want, walk away, come back to a working repo. Autonomous build rites via Claude Code."
+description = "ANIMYST — Describe what you want, walk away, come back to a working repo. Autonomous build rites."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
