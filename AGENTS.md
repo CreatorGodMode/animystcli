@@ -1,44 +1,53 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-Core application code lives in `animyst/`:
-- `app.py`: main Textual TUI, command handling, modal flows
-- `llm.py`: provider streaming and API key/settings logic
-- `cyberpunk.tcss`: shared UI styling
-- `__main__.py`: `python -m animyst` entry point
+This file is the contributor guide for `animystcli`. For end-user docs see `README.md`. For project conventions and architecture see `CLAUDE.md`.
 
-Project documentation is in `README.md` and `docs/index.html`. Build outputs are written to `dist/` and should be treated as generated artifacts.
+## Project Structure
+Core code lives in `animyst/`:
+- `cli.py` — argparse + dispatch for the `animyst` subcommands
+- `rites.py` — registry, summon, attach, stop, banish (lifecycle + state)
+- `watcher.py` — Textual `animyst watch` tracker
+- `prompt_template.md` — the Ralph-protocol prompt the agent runs against (the actual product value)
+- `settings_template.json` — Claude Code deny rules shipped into every rite
+- `loop.sh` — bash loop driver that calls `claude -p` in iteration
+
+Tests go under `tests/`. Per-release artifacts (wheels, sdist) build into `dist/` and are gitignored.
 
 ## Build, Test, and Development Commands
-- `python -m venv .venv && source .venv/bin/activate`: create/activate local environment.
-- `pip install -e .`: install Animyst in editable mode for development.
-- `animyst`: launch the CLI/TUI via console script.
-- `python -m animyst`: alternate launch path for local debugging.
-- `python -m build`: build source/wheel distributions (install `build` first if needed).
+- `python3.12 -m venv .venv && source .venv/bin/activate` — create/activate the venv (use the absolute Homebrew path `/opt/homebrew/bin/python3.12` if your system `python3.12` shadows to a newer version)
+- `pip install -e .` — install in editable mode
+- `animyst --version` — verify the CLI is wired
+- `animyst summon "test description"` — full end-to-end run (spawns a tmux session calling `claude -p`)
+- `python -m build` — build sdist + wheel (install `build` first)
+- `python -m animyst` — alternate launch path
 
-## Coding Style & Naming Conventions
-Use Python 3.10+ with 4-space indentation and type hints for new/changed code. Follow existing naming:
-- `snake_case` for functions/variables
-- `PascalCase` for classes
-- `UPPER_SNAKE_CASE` for constants
+## Runtime Requirements
+- Python 3.10+
+- `claude` CLI on PATH ([Claude Code](https://claude.com/claude-code), signed in)
+- `tmux`
+- `git`
 
-Keep UI language aligned with project terminology (for example: “manifest”, “awaken”, “banish”, “incantation”). Put Textual styling in `cyberpunk.tcss` rather than inline style strings where practical.
+## Coding Style
+- Python 3.10+, 4-space indentation, type hints on new/changed code
+- `snake_case` for functions/variables, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants
+- Keep user-facing language aligned with the ritual vocabulary (`summon`, `awaken`, `dormant`, `banish` — see `CLAUDE.md`)
+- Textual styling lives inline in `watcher.py` as a `CSS = """..."""` block; no separate `.tcss` file
 
-## Testing Guidelines
-There is currently no committed automated test suite. For functional changes:
-- add focused `pytest` tests under `tests/` using `test_*.py` naming when introducing testable logic
-- run manual smoke checks by launching `animyst` and validating key commands (`help`, `manifest`, `awaken`, `inspect`)
+## Testing
+There is currently no automated test suite. For functional changes:
+- Add `pytest` tests under `tests/` using `test_*.py` naming when introducing testable logic. Start with pure functions (slug derivation, prompt rendering, registry CRUD).
+- For end-to-end verification, run `animyst summon "<smoke description>" --cap 2` in a throwaway directory and observe.
 
-Document manual verification steps in your PR until a formal CI test pipeline exists.
+Manual verification steps go in PR descriptions until a CI suite exists.
 
 ## Commit & Pull Request Guidelines
-Match the repository’s existing commit style: short, imperative summaries (for example, `Update README for v0.1.0 public release`). Keep commits scoped to one concern.
+- Commit subjects: short, imperative, no conventional-commit prefix. Match existing style (e.g. `Add v0.2.0 rite framework CLI`, `Rewrite README around the v0.2 rite framework`).
+- One concern per commit. Use the body to explain "why."
+- Never add `Co-Authored-By: Claude` or other AI co-authorship trailers.
+- PR descriptions should include: summary of behavior change, manual test notes (commands run + outcomes), and screenshots/asciinema if you changed `animyst watch` or anything else visible.
 
-PRs should include:
-- clear summary of behavior changes
-- linked issue/task when applicable
-- terminal screenshots or GIFs for visible TUI updates
-- manual test notes (commands run + outcomes)
-
-## Security & Configuration Tips
-Never commit API keys or personal config from `~/.animyst/` (`settings.json`, `agents.json`, etc.). Prefer environment variables for local development secrets and verify file permissions remain restricted for saved settings.
+## Security & Configuration
+- Never commit `.env*`, API tokens, or anything from `~/.animyst/`
+- Never commit personal rite directories — they may contain experimental or unfinished work
+- The rite `.claude/settings.json` deny rules are a hard wall; don't relax them without a real reason
+- `.envrc` (direnv) is gitignored — keep PyPI tokens and similar there
